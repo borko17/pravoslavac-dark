@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Aplikacije u kojima se modul preporucuje za aktivaciju u LSPosed-u -->
+    <string-array name="xposedscope">
+        <item>com.pravoslavac</item>
+    </string-array>
+</resources>

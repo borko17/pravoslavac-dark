@@ -1,0 +1,55 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Potpisivanje: ako su postavljene varijable okruzenja (npr. iz GitHub Secrets) koristi se vas kljuc,
+// inace se release APK potpisuje debug kljucem (samo za testiranje).
+def ksFile = System.getenv('KEYSTORE_FILE')
+
+android {
+    namespace 'patch.kalendar'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'patch.kalendar'
+        minSdk 21
+        targetSdk 34
+        versionCode 8
+        versionName '1.7-dark'
+    }
+
+    signingConfigs {
+        if (ksFile) {
+            release {
+                storeFile file(ksFile)
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS')
+                keyPassword System.getenv('KEY_PASSWORD')
+                enableV1Signing true
+                enableV2Signing true
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig ksFile ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+    // Xposed API je samo za kompajliranje; u runtime-u ga daje LSPosed.
+    compileOnly project(':xposed-api-stub')
+}
