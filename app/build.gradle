@@ -14,7 +14,7 @@ android {
         applicationId 'patch.kalendar'
         minSdk 21
         //noinspection TargetSdkVersion
-        targetSdk 34
+        targetSdk 37
         versionCode 10
         versionName '1.9-dark'
     }
