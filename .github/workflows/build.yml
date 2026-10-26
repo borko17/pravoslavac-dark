@@ -28,7 +28,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.7'
+          gradle-version: '9.4.1.'
 
       - name: Pripremi keystore (ako je postavljen secret KEYSTORE_B64)
         if: env.KEYSTORE_B64 != ''
