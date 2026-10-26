@@ -1,5 +1,5 @@
 plugins {
-    id 'com.android.application'
+    alias libs.plugins.android.application
 }
 
 // Potpisivanje: ako su postavljene varijable okruzenja (npr. iz GitHub Secrets) koristi se vas kljuc,
@@ -8,7 +8,7 @@ def ksFile = System.getenv('KEYSTORE_FILE')
 
 android {
     namespace 'patch.kalendar'
-    compileSdk 34
+    compileSdk 37
 
     defaultConfig {
         applicationId 'patch.kalendar'
