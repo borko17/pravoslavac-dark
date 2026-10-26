@@ -8,13 +8,13 @@ def ksFile = System.getenv('KEYSTORE_FILE')
 
 android {
     namespace 'patch.kalendar'
-    compileSdk 37
+
 
     defaultConfig {
         applicationId 'patch.kalendar'
         minSdk 21
         //noinspection TargetSdkVersion
-        targetSdk 35
+        targetSdk 34
         versionCode 10
         versionName '1.9-dark'
     }
