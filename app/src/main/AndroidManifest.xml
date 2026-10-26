@@ -1,19 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <queries>
+        <package android:name="com.pravoslavac" />
+    </queries>
+
     <application
         android:allowBackup="false"
+        android:icon="@drawable/ic_launcher"
         android:label="Pravoslavac kalendar patch">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Material.Light.DarkActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <meta-data
             android:name="xposedmodule"
             android:value="true" />
         <meta-data
             android:name="xposeddescription"
-            android:value="Pravoslavac: pocetni ekran je kalendar + tamna tema" />
+            android:value="Pravoslavac: tamna tema, preskakanje uvodnog ekrana, lijevo poravnanje (podesivo)" />
         <meta-data
             android:name="xposedminversion"
             android:value="93" />
+        <meta-data
+            android:name="xposedsharedprefs"
+            android:value="true" />
         <meta-data
             android:name="xposedscope"
             android:resource="@array/xposedscope" />

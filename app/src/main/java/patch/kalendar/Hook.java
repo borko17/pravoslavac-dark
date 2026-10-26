@@ -6,6 +6,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.view.View;
+import android.view.ViewGroup;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
@@ -59,13 +60,29 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         hook("com.pravoslavac.Splashscreen", cl, "onCreate", "android.os.Bundle", new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) {
-                start = true;
-                inSplash = true;
+                // Pri pokretanju otvori kalendar (tekuci mjesec) umjesto zitija za taj dan.
+                start = Prefs.openCalendar();
+                inSplash = Prefs.skipSplash();
             }
 
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
                 inSplash = false;
+                // Ako se uvodni ekran prikazuje, a tamna tema je ukljucena: crna pozadina umjesto bijele.
+                if (Prefs.dark() && !Prefs.skipSplash()) {
+                    try {
+                        Activity a = (Activity) param.thisObject;
+                        a.getWindow().setBackgroundDrawable(new ColorDrawable(0xff000000));
+                        View content = a.findViewById(android.R.id.content);
+                        if (content instanceof ViewGroup) {
+                            ViewGroup g = (ViewGroup) content;
+                            g.setBackgroundColor(0xff000000);
+                            if (g.getChildCount() > 0) g.getChildAt(0).setBackgroundColor(0xff000000);
+                        }
+                    } catch (Throwable t) {
+                        XposedBridge.log(t);
+                    }
+                }
             }
         });
 
@@ -109,8 +126,8 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                     protected void afterHookedMethod(MethodHookParam param) {
                         try {
                             WebView wv = (WebView) param.args[0];
-                            wv.evaluateJavascript(Assets.JUSTIFY_JS, null);
-                            wv.evaluateJavascript(Assets.DARK_JS, null);
+                            if (Prefs.left()) wv.evaluateJavascript(Assets.JUSTIFY_JS, null);
+                            if (Prefs.dark()) wv.evaluateJavascript(Assets.DARK_JS, null);
                         } catch (Throwable t) {
                             XposedBridge.log(t);
                         }
@@ -123,8 +140,8 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                 protected void beforeHookedMethod(MethodHookParam param) {
                     try {
                         WebView wv = (WebView) param.thisObject;
-                        wv.getSettings().setJavaScriptEnabled(true);
-                        wv.setBackgroundColor(Dark.BG);
+                        if (Prefs.dark() || Prefs.left()) wv.getSettings().setJavaScriptEnabled(true);
+                        if (Prefs.dark()) wv.setBackgroundColor(Dark.BG);
                     } catch (Throwable t) {
                         XposedBridge.log(t);
                     }
@@ -148,6 +165,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         XC_MethodHook colorHook = new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) {
+                if (!Prefs.dark()) return;
                 try {
                     int c = ((Integer) param.args[0]).intValue();
                     if (c == LIGHT_ROW) {
@@ -165,6 +183,14 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
 
         hookText(cl);
         hookCss(cl);
+
+        // Lijevo poravnanje: ugasi justifikaciju u nativnim TextView-ovima (Android 8+).
+        hook("android.widget.TextView", cl, "setJustificationMode", int.class, new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) {
+                if (Prefs.left()) param.args[0] = Integer.valueOf(0);
+            }
+        });
     }
 
     /** Skracenica: XposedHelpers.findAndHookMethod uz hvatanje gresaka. Zadnji argument je callback. */
@@ -190,6 +216,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
     }
 
     private static void applyTheme(Activity a) {
+        if (!Prefs.dark()) return;
         if (!a.getClass().getName().startsWith(PKG + ".")) return;
         try {
             int id = a.getResources().getIdentifier("Theme.AppCompat", "style", PKG);
@@ -210,7 +237,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
             protected void afterHookedMethod(MethodHookParam param) {
                 int[] d = DEPTH.get();
                 d[0]--;
-                if (d[0] == 0) {
+                if (d[0] == 0 && Prefs.dark()) {
                     Object r = param.getResult();
                     if (r instanceof View) {
                         Dark.walk((View) r);
@@ -228,6 +255,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                 new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) {
+                        if (!Prefs.dark()) return;
                         try {
                             Object o = param.args[0];
                             if (o instanceof CharSequence) {
@@ -246,6 +274,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                 "android.webkit.WebResourceRequest", new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) {
+                        if (!Prefs.dark()) return;
                         try {
                             String path = ((WebResourceRequest) param.args[1]).getUrl().getPath();
                             if (path == null || !path.endsWith(".css")
@@ -279,6 +308,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
 
         @Override
         protected void beforeHookedMethod(MethodHookParam param) {
+            if (!Prefs.dark()) return;
             try {
                 View v = (View) param.thisObject;
                 if (oddId == -1) {
@@ -302,6 +332,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
 
         @Override
         protected void afterHookedMethod(MethodHookParam param) {
+            if (!Prefs.dark()) return;
             try {
                 Dark.fixBackground((View) param.thisObject);
             } catch (Throwable t) {
@@ -324,6 +355,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
     public void handleInitPackageResources(XC_InitPackageResources.InitPackageResourcesParam resparam)
             throws Throwable {
         if (!PKG.equals(resparam.packageName)) return;
+        if (!Prefs.dark()) return;
         XResources res = resparam.res;
 
         rc(res, "primary_material_dark", Dark.BAR);

@@ -14,8 +14,8 @@ android {
         applicationId 'patch.kalendar'
         minSdk 21
         targetSdk 34
-        versionCode 8
-        versionName '1.7-dark'
+        versionCode 10
+        versionName '1.9-dark'
     }
 
     signingConfigs {
