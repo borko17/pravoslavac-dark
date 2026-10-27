@@ -51,7 +51,7 @@ public class MainActivity extends Activity {
             root.addView(warn);
         }
 
-        root.addView(new View(this), new LinearLayout.LayoutParams(1, dp(24)));
+        root.addView(new View(this), new LinearLayout.LayoutParams(1, dp(104)));
 
         root.addView(makeSwitch("Preskoči uvodni ekran", "Aplikacija se otvara bez uvodnog ekrana.",
                 Prefs.KEY_SKIP_SPLASH));
