@@ -4,7 +4,9 @@ plugins {
 
 android {
     namespace 'de.robv.android.xposed.stub'
-    compileSdk 37
+    compileSdk {
+        version = release(37)
+    }
 
 
     defaultConfig {
