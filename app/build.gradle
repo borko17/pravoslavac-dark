@@ -8,6 +8,7 @@ def ksFile = System.getenv('KEYSTORE_FILE')
 
 android {
     namespace 'patch.kalendar'
+    compileSdk 37
 
 
     defaultConfig {
