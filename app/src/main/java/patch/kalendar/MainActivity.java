@@ -15,7 +15,7 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-/** Ekran sa podesavanjima modula (otvara se iz launchera). */
+/** Ekran sa podešavanjima modula (otvara se iz launchera). */
 public class MainActivity extends Activity {
 
     private static final String TARGET = "com.pravoslavac";
@@ -51,18 +51,20 @@ public class MainActivity extends Activity {
             root.addView(warn);
         }
 
-        root.addView(makeSwitch("Pocetni ekran je kalendar", "Pri pokretanju se otvara kalendar umjesto zitija za taj dan.",
-                Prefs.KEY_OPEN_CALENDAR));
-        root.addView(makeSwitch("Preskoci uvodni ekran", "Aplikacija se odmah otvara na kalendaru.",
+        root.addView(new View(this), new LinearLayout.LayoutParams(1, dp(24)));
+
+        root.addView(makeSwitch("Preskoči uvodni ekran", "Aplikacija se otvara bez uvodnog ekrana.",
                 Prefs.KEY_SKIP_SPLASH));
-        root.addView(makeSwitch("Tamna tema", "Tamne boje, liste, kalendar i sadrzaj stranica.",
+        root.addView(makeSwitch("Tamna tema", "Tamne boje, liste, kalendar i sadržaj stranica.",
                 Prefs.KEY_DARK));
-        root.addView(makeSwitch("Tekst poravnat lijevo", "Umjesto obostranog poravnanja (justified).",
+        root.addView(makeSwitch("Tekst poravnat lijevo", "Umjesto obostranog poravnanja.",
                 Prefs.KEY_LEFT));
+        root.addView(makeSwitch("Aplikacija otvara kalendar", "Otvara se kalendar umjesto žitija za taj dan.",
+                Prefs.KEY_OPEN_CALENDAR));
 
         TextView hint = new TextView(this);
-        hint.setText("Promjene se primjenjuju pri sljedecem pokretanju aplikacije Pravoslavac. "
-                + "Ako je vec otvorena, prvo je zaustavi (Force stop).");
+        hint.setText("Promjene se primjenjuju pri sljedećem pokretanju aplikacije Pravoslavac. "
+                + "Ako je već otvorena, prvo je zaustavi (Force stop).");
         hint.setPadding(0, pad, 0, pad);
         root.addView(hint);
 
@@ -91,7 +93,7 @@ public class MainActivity extends Activity {
                             Uri.parse("package:" + TARGET));
                     startActivity(i);
                 } catch (Throwable t) {
-                    Toast.makeText(MainActivity.this, "Ne mogu otvoriti podesavanja aplikacije",
+                    Toast.makeText(MainActivity.this, "Ne mogu otvoriti podešavanja aplikacije",
                             Toast.LENGTH_SHORT).show();
                 }
             }
