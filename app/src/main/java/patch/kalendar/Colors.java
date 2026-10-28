@@ -19,15 +19,26 @@ final class Colors {
             { "c_web_text",   "Slova u listama knjiga i molitvi",              "d9d4c7" },
     };
 
-    /** Boje koje se ne prikazuju u uređivanju (ostaju u temama sa podrazumijevanim vrijednostima). */
-    static boolean hidden(String key) {
-        return key.equals("c_bar_dark") || key.equals("c_accent") || key.equals("c_web_head2")
-                || key.equals("c_web_link") || key.equals("c_web_visited") || key.equals("c_web_line");
-    }
+    /** Boje koje se ne uređuju u aplikaciji, ali ih tema i dalje ima (ostaju sa vrijednostima iz teme). */
+    static final String[][] HIDDEN = {
+            { "c_bar_dark",   "Statusna traka",              "0f1626" },
+            { "c_accent",     "Akcent (prekidači, pritisnuta dugmad)","6495ed" },
+            { "c_web_head2",  "Podnaslovi (h5, h6)",         "e6e1d6" },
+            { "c_web_link",   "Linkovi",                     "8ab4f8" },
+            { "c_web_visited","Posjećeni linkovi",           "c4a5f0" },
+            { "c_web_line",   "Linije i tabele",             "444444" },
+    };
 
     static String def(String key) {
         for (String[] c : ALL) if (c[0].equals(key)) return c[2];
+        for (String[] c : HIDDEN) if (c[0].equals(key)) return c[2];
         return "000000";
+    }
+
+    /** Neuređive boje (ne prikazuju se u listi). */
+    static boolean hidden(String key) {
+        for (String[] c : HIDDEN) if (c[0].equals(key)) return true;
+        return false;
     }
 
     /** "#rgb", "#rrggbb", "rgb" ili "rrggbb" -> 0xffRRGGBB; null ako nije ispravno. */

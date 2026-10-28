@@ -38,15 +38,20 @@ final class Themes {
         Theme copy(String newId, String newName) {
             Theme t = new Theme(newId, newName);
             for (String[] c : Colors.ALL) t.colors.put(c[0], color(c[0]));
+            for (String[] c : Colors.HIDDEN) t.colors.put(c[0], color(c[0]));
             return t;
         }
     }
 
-    // redoslijed = Colors.ALL: bg, surface, bar, bar_dark, text, accent, divider, red_line, row, row_border,
-    //                          title, red_bar, web_text, web_head2, web_link, web_visited, web_line
+    /** Redoslijed vrijednosti u ugrađenim temama ispod (ne mijenjati bez izmjene tih nizova). */
+    private static final String[] ORDER = {
+            "c_bg", "c_surface", "c_bar", "c_bar_dark", "c_text", "c_accent", "c_divider", "c_red_line", "c_row",
+            "c_row_border", "c_title", "c_red_bar", "c_web_text", "c_web_head2", "c_web_link", "c_web_visited",
+            "c_web_line" };
+
     private static Theme make(String id, String name, String... hex) {
         Theme t = new Theme(id, name);
-        for (int i = 0; i < Colors.ALL.length; i++) t.colors.put(Colors.ALL[i][0], hex[i]);
+        for (int i = 0; i < ORDER.length; i++) t.colors.put(ORDER[i], hex[i]);
         return t;
     }
 
