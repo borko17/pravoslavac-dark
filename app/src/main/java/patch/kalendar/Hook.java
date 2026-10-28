@@ -383,6 +383,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         rc(res, "list_background", Dark.SURFACE);
         rc(res, "list_divider", Dark.DIVIDER);
         rc(res, "textcolormain", Dark.TEXT);
+        rc(res, "my_color_light", Dark.ACCENT); // pritisnuto stanje dugmadi (mybuttonselector)
 
         try {
             // pozadina "papir"
@@ -390,6 +391,17 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                 @Override
                 public Drawable newDrawable(XResources r, int id) throws Throwable {
                     return new ColorDrawable(Dark.BG);
+                }
+            });
+            // klizač (scrollbar thumb)
+            res.setReplacement(PKG, "drawable", "customscroll", new XResources.DrawableLoader() {
+                @Override
+                public Drawable newDrawable(XResources r, int id) throws Throwable {
+                    GradientDrawable g = new GradientDrawable();
+                    g.setShape(GradientDrawable.RECTANGLE);
+                    g.setColor(Dark.RED_BAR);
+                    g.setCornerRadius(4f * r.getDisplayMetrics().density);
+                    return g;
                 }
             });
             // dugmad / trake

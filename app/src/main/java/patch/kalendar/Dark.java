@@ -38,6 +38,7 @@ final class Dark {
     static int ROW = 0xff1f1f1d;
     static int ROW_BORDER = 0xff2f5f99;
     static int TITLE = 0xffff7a66;
+    static int RED_BAR = 0xff8b0000;
     static int WEB_TEXT = 0xffd9d4c7;
     static int WEB_HEAD2 = 0xffe6e1d6;
     static int WEB_LINK = 0xff8ab4f8;
@@ -57,6 +58,7 @@ final class Dark {
         ROW = Prefs.color("c_row");
         ROW_BORDER = Prefs.color("c_row_border");
         TITLE = Prefs.color("c_title");
+        RED_BAR = Prefs.color("c_red_bar");
         WEB_TEXT = Prefs.color("c_web_text");
         WEB_HEAD2 = Prefs.color("c_web_head2");
         WEB_LINK = Prefs.color("c_web_link");
@@ -185,6 +187,8 @@ final class Dark {
         int a = c >>> 24;
         float[] hsl = toHsl(c);
         if (hsl[1] < 0.2f) return (a << 24) | (TEXT & 0xffffff);
+        // tamnocrveni tekst (8B0000, 990000, CC0000...) -> boja "Crveni naslovi"
+        if (hsl[1] >= 0.6f && (hsl[0] <= 15f || hsl[0] >= 345f)) return (a << 24) | (TITLE & 0xffffff);
         return fromHsl(hsl[0], Math.min(1f, hsl[1]) * 0.9f, 0.72f, a);
     }
 
@@ -218,6 +222,10 @@ final class Dark {
         if (d == null) return;
         if (d instanceof ColorDrawable) {
             int c = ((ColorDrawable) d).getColor();
+            if (c == 0xff8b0000) {                       // crvena traka (npr. naslov mjeseca)
+                if (RED_BAR != c) v.setBackgroundColor(RED_BAR);
+                return;
+            }
             int m = mapBg(c);
             if (m != c) v.setBackgroundColor(m);
             return;

@@ -43,7 +43,7 @@ final class Themes {
     }
 
     // redoslijed = Colors.ALL: bg, surface, bar, bar_dark, text, accent, divider, red_line, row, row_border,
-    //                          title, web_text, web_head2, web_link, web_visited, web_line
+    //                          title, red_bar, web_text, web_head2, web_link, web_visited, web_line
     private static Theme make(String id, String name, String... hex) {
         Theme t = new Theme(id, name);
         for (int i = 0; i < Colors.ALL.length; i++) t.colors.put(Colors.ALL[i][0], hex[i]);
@@ -54,13 +54,13 @@ final class Themes {
         List<Theme> l = new ArrayList<Theme>();
         l.add(make("orig", "Tamna (originalna)",
                 "121212", "1a1a18", "1f2a3f", "0f1626", "e0dcd0", "6495ed", "333333", "dc143c", "1f1f1d", "2f5f99",
-                "ff7a66", "d9d4c7", "e6e1d6", "8ab4f8", "c4a5f0", "444444"));
+                "ff7a66", "8b0000", "d9d4c7", "e6e1d6", "8ab4f8", "c4a5f0", "444444"));
         l.add(make("amoled", "AMOLED crna",
                 "000000", "050505", "0d1522", "000000", "e6e6e6", "6495ed", "222222", "b3243a", "0b0b0b", "1f4a7a",
-                "ff7a66", "d2d2d2", "eeeeee", "8ab4f8", "c4a5f0", "333333"));
+                "ff7a66", "7a0f1a", "d2d2d2", "eeeeee", "8ab4f8", "c4a5f0", "333333"));
         l.add(make("sepia", "Topla sepija",
                 "1c1712", "241e17", "4a3520", "2e2012", "e8dcc4", "d9a441", "3a3128", "b5533c", "2a231b", "8a6a2f",
-                "ff8a65", "e0d4bc", "f0e6d0", "e0b060", "c9a0dc", "4a4033"));
+                "ff8a65", "7a2e1f", "e0d4bc", "f0e6d0", "e0b060", "c9a0dc", "4a4033"));
         return l;
     }
 
