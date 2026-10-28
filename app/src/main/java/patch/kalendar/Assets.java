@@ -4,19 +4,29 @@ package patch.kalendar;
 final class Assets {
     private Assets() {}
 
-    static final String DARK_CSS =
-        ":root{color-scheme:dark}\n"
-        + "html,body{background:#121212 !important;background-image:none !important;color:#d9d4c7 !important}\n"
+    private static String hex(int c) {
+        return "#" + Colors.hex(c);
+    }
+
+    /** CSS za tamnu temu; boje dolaze iz Dark.* (podrazumijevane ili prilagodjene). */
+    static String darkCss() {
+        return ":root{color-scheme:dark}\n"
+        + "html,body{background:" + hex(Dark.BG) + " !important;background-image:none !important;color:" + hex(Dark.WEB_TEXT) + " !important}\n"
         + "#wrapper,div.transbox,.calibre,.calibre1{background:transparent !important;background-image:none !important}\n"
-        + "h1,h2,h3,h4,.color-red{color:#ff7a66 !important}\n"
-        + "h5,h6{color:#e6e1d6 !important}\n"
-        + "a,a:link{color:#8ab4f8}\n"
-        + "a:visited{color:#c4a5f0}\n"
-        + "a:hover{color:#ff7a66 !important}\n"
-        + "hr{border-color:#444 !important;color:#444 !important;background-color:#444}\n"
-        + "table,td,th{border-color:#444}\n"
-        + "input,select,textarea,button{background:#1e1e1e;color:#d9d4c7;border-color:#555}\n"
+        + "h1,h2,h3,h4,.color-red{color:" + hex(Dark.TITLE) + " !important}\n"
+        + "h5,h6{color:" + hex(Dark.WEB_HEAD2) + " !important}\n"
+        + "a,a:link{color:" + hex(Dark.WEB_LINK) + "}\n"
+        + "a:visited{color:" + hex(Dark.WEB_VISITED) + "}\n"
+        + "a:hover{color:" + hex(Dark.TITLE) + " !important}\n"
+        + "hr{border-color:" + hex(Dark.WEB_LINE) + " !important;color:" + hex(Dark.WEB_LINE) + " !important;background-color:" + hex(Dark.WEB_LINE) + "}\n"
+        + "table,td,th{border-color:" + hex(Dark.WEB_LINE) + "}\n"
+        + "input,select,textarea,button{background:" + hex(Dark.SURFACE) + ";color:" + hex(Dark.WEB_TEXT) + ";border-color:" + hex(Dark.WEB_LINE) + "}\n"
         + "::-webkit-scrollbar-track{-webkit-box-shadow:inset 0 0 3px rgba(0,0,0,.8)}\n";
+    }
+
+    static String darkJs() {
+        return DARK_JS.replace("@TEXT@", hex(Dark.WEB_TEXT));
+    }
 
     static final String DARK_JS =
         "(function(){\n"
@@ -31,7 +41,7 @@ final class Assets {
         + "  function fgMap(c){\n"
         + "    if(lum(c)>=0.5)return null;\n"
         + "    var x=toHsl(c.r,c.g,c.b);\n"
-        + "    if(x[1]<0.2)return'#d9d4c7';\n"
+        + "    if(x[1]<0.2)return'@TEXT@';\n"
         + "    return hsl(x[0],Math.min(1,x[1])*0.9,0.72);\n"
         + "  }\n"
         + "  function bgMap(c){\n"

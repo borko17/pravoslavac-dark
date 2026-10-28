@@ -13,7 +13,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.Material.Light.DarkActionBar">
+            android:theme="@android:style/Theme.Material">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -25,7 +25,7 @@
             android:value="true" />
         <meta-data
             android:name="xposeddescription"
-            android:value="Pravoslavac: tamna tema, preskakanje uvodnog ekrana, lijevo poravnanje (podesivo)" />
+            android:value="Pravoslavac: teme (tamna tema s prilagodljivim bojama), preskakanje uvodnog ekrana, lijevo poravnanje (podesivo)" />
         <meta-data
             android:name="xposedminversion"
             android:value="93" />

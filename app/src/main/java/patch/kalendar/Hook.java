@@ -33,10 +33,8 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
 
     /** Boja krem reda u kalendaru koju aplikacija postavlja kodom (svaki drugi red). */
     static final int LIGHT_ROW = 0xfffbf7ea;
-    static final int DARK_ROW = 0xff1f1f1d;
-    /** Tamnocrvena boja naslova koju aplikacija postavlja kodom i njena svijetla zamjena. */
+    /** Tamnocrvena boja naslova koju aplikacija postavlja kodom (zamjena: Dark.TITLE). */
     static final int DARK_RED = 0xffcc0000;
-    static final int LIGHT_RED = 0xffff7a66;
 
     /** Dubina ugnijezdenih LayoutInflater.inflate poziva (po niti). */
     static final ThreadLocal<int[]> DEPTH = new ThreadLocal<int[]>() {
@@ -55,6 +53,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
         if (!PKG.equals(lpparam.packageName)) return;
         final ClassLoader cl = lpparam.classLoader;
+        Dark.reload();
 
         // Splash: ne prikazuj pocetni ekran, odmah idi na kalendar.
         hook("com.pravoslavac.Splashscreen", cl, "onCreate", "android.os.Bundle", new XC_MethodHook() {
@@ -127,7 +126,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                         try {
                             WebView wv = (WebView) param.args[0];
                             if (Prefs.left()) wv.evaluateJavascript(Assets.JUSTIFY_JS, null);
-                            if (Prefs.dark()) wv.evaluateJavascript(Assets.DARK_JS, null);
+                            if (Prefs.dark()) wv.evaluateJavascript(Assets.darkJs(), null);
                         } catch (Throwable t) {
                             XposedBridge.log(t);
                         }
@@ -169,9 +168,9 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                 try {
                     int c = ((Integer) param.args[0]).intValue();
                     if (c == LIGHT_ROW) {
-                        param.args[0] = Integer.valueOf(DARK_ROW);
+                        param.args[0] = Integer.valueOf(Dark.ROW);
                     } else if (c == DARK_RED) {
-                        param.args[0] = Integer.valueOf(LIGHT_RED);
+                        param.args[0] = Integer.valueOf(Dark.TITLE);
                     }
                 } catch (Throwable t) {
                     XposedBridge.log(t);
@@ -292,7 +291,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                                 out.write(buf, 0, n);
                             }
                             in.close();
-                            out.write(("\n" + Assets.DARK_CSS).getBytes("UTF-8"));
+                            out.write(("\n" + Assets.darkCss()).getBytes("UTF-8"));
                             param.setResult(new WebResourceResponse("text/css", "UTF-8",
                                     new ByteArrayInputStream(out.toByteArray())));
                         } catch (Throwable ignored) {
@@ -302,28 +301,39 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                 });
     }
 
-    /** setBackgroundResource: red "neparni dani" u kalendaru dobija tamnu pozadinu; ostalo se naknadno popravlja. */
+    /**
+     * setBackgroundResource: okvir danasnjeg dana u kalendaru. Aplikacija danasnjem redu postavlja
+     * tablerow_border_neparni_dani (neparan datum, ima i punu pozadinu) ili tablerow_border_parni_dani
+     * (paran datum, samo okvir). Oba se zamjenjuju okvirom u boji teme; ostalo se naknadno popravlja.
+     */
     private static final class OddRowHook extends XC_MethodHook {
         private int oddId = -1;
+        private int evenId = -1;
+        private boolean handled;
 
         @Override
         protected void beforeHookedMethod(MethodHookParam param) {
+            handled = false;
             if (!Prefs.dark()) return;
             try {
                 View v = (View) param.thisObject;
                 if (oddId == -1) {
                     oddId = v.getResources().getIdentifier("tablerow_border_neparni_dani", "drawable", PKG);
+                    evenId = v.getResources().getIdentifier("tablerow_border_parni_dani", "drawable", PKG);
                 }
                 int id = ((Integer) param.args[0]).intValue();
-                if (oddId > 0 && id == oddId) {
+                boolean odd = oddId > 0 && id == oddId;
+                boolean even = evenId > 0 && id == evenId;
+                if (odd || even) {
                     GradientDrawable g = new GradientDrawable();
                     g.setShape(GradientDrawable.RECTANGLE);
-                    g.setColor(DARK_ROW);
+                    if (odd) g.setColor(Dark.ROW); // parni: samo okvir, bez pozadine
                     float density = v.getResources().getDisplayMetrics().density;
                     int w = Math.max(1, Math.round(density * 3f));
-                    g.setStroke(w, 0xff2f5f99);
+                    g.setStroke(w, Dark.ROW_BORDER);
                     v.setBackground(g);
                     param.setResult(null);
+                    handled = true;
                 }
             } catch (Throwable t) {
                 XposedBridge.log(t);
@@ -333,6 +343,10 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         @Override
         protected void afterHookedMethod(MethodHookParam param) {
             if (!Prefs.dark()) return;
+            if (handled) { // vec je u bojama teme, ne diraj (inace bi svijetla boja okvira bila invertovana)
+                handled = false;
+                return;
+            }
             try {
                 Dark.fixBackground((View) param.thisObject);
             } catch (Throwable t) {
@@ -356,6 +370,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
             throws Throwable {
         if (!PKG.equals(resparam.packageName)) return;
         if (!Prefs.dark()) return;
+        Dark.reload();
         XResources res = resparam.res;
 
         rc(res, "primary_material_dark", Dark.BAR);

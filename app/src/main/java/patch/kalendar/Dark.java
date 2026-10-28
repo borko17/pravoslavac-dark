@@ -27,13 +27,42 @@ import de.robv.android.xposed.XposedBridge;
 final class Dark {
     private Dark() {}
 
-    static final int BG = 0xff121212;
-    static final int SURFACE = 0xff1a1a18;
-    static final int BAR = 0xff1f2a3f;
-    static final int BAR_DARK = 0xff0f1626;
-    static final int TEXT = 0xffe0dcd0;
-    static final int ACCENT = 0xff6495ed;
-    static final int DIVIDER = 0xff333333;
+    static int BG = 0xff121212;
+    static int SURFACE = 0xff1a1a18;
+    static int BAR = 0xff1f2a3f;
+    static int BAR_DARK = 0xff0f1626;
+    static int TEXT = 0xffe0dcd0;
+    static int ACCENT = 0xff6495ed;
+    static int DIVIDER = 0xff333333;
+    static int RED_LINE = 0xffdc143c;
+    static int ROW = 0xff1f1f1d;
+    static int ROW_BORDER = 0xff2f5f99;
+    static int TITLE = 0xffff7a66;
+    static int WEB_TEXT = 0xffd9d4c7;
+    static int WEB_HEAD2 = 0xffe6e1d6;
+    static int WEB_LINK = 0xff8ab4f8;
+    static int WEB_VISITED = 0xffc4a5f0;
+    static int WEB_LINE = 0xff444444;
+
+    /** Ucitava boje iz postavki (prilagodjena tema) ili podrazumijevane. */
+    static void reload() {
+        BG = Prefs.color("c_bg");
+        SURFACE = Prefs.color("c_surface");
+        BAR = Prefs.color("c_bar");
+        BAR_DARK = Prefs.color("c_bar_dark");
+        TEXT = Prefs.color("c_text");
+        ACCENT = Prefs.color("c_accent");
+        DIVIDER = Prefs.color("c_divider");
+        RED_LINE = Prefs.color("c_red_line");
+        ROW = Prefs.color("c_row");
+        ROW_BORDER = Prefs.color("c_row_border");
+        TITLE = Prefs.color("c_title");
+        WEB_TEXT = Prefs.color("c_web_text");
+        WEB_HEAD2 = Prefs.color("c_web_head2");
+        WEB_LINK = Prefs.color("c_web_link");
+        WEB_VISITED = Prefs.color("c_web_visited");
+        WEB_LINE = Prefs.color("c_web_line");
+    }
 
     private static ColorMatrixColorFilter INVERT;
 
@@ -82,15 +111,15 @@ final class Dark {
     private static ColorMatrixColorFilter invert() {
         if (INVERT == null) {
             ColorMatrix a = new ColorMatrix(new float[] {
-                -1f, 0f, 0f, 0f, 255f,
-                0f, -1f, 0f, 0f, 255f,
-                0f, 0f, -1f, 0f, 255f,
-                0f, 0f, 0f, 1f, 0f });
+                    -1f, 0f, 0f, 0f, 255f,
+                    0f, -1f, 0f, 0f, 255f,
+                    0f, 0f, -1f, 0f, 255f,
+                    0f, 0f, 0f, 1f, 0f });
             ColorMatrix b = new ColorMatrix(new float[] {
-                -0.574f, 1.43f, 0.144f, 0f, 0f,
-                0.426f, 0.43f, 0.144f, 0f, 0f,
-                0.426f, 1.43f, -0.856f, 0f, 0f,
-                0f, 0f, 0f, 1f, 0f });
+                    -0.574f, 1.43f, 0.144f, 0f, 0f,
+                    0.426f, 0.43f, 0.144f, 0f, 0f,
+                    0.426f, 1.43f, -0.856f, 0f, 0f,
+                    0f, 0f, 0f, 1f, 0f });
             a.postConcat(b);
             INVERT = new ColorMatrixColorFilter(a);
         }
@@ -155,7 +184,7 @@ final class Dark {
         if (lum(c) >= 0.5f) return c;
         int a = c >>> 24;
         float[] hsl = toHsl(c);
-        if (hsl[1] < 0.2f) return (a << 24) | 0xe0dcd0;
+        if (hsl[1] < 0.2f) return (a << 24) | (TEXT & 0xffffff);
         return fromHsl(hsl[0], Math.min(1f, hsl[1]) * 0.9f, 0.72f, a);
     }
 
@@ -224,9 +253,12 @@ final class Dark {
                 Drawable div = lv.getDivider();
                 if (div instanceof ColorDrawable) {
                     int col = ((ColorDrawable) div).getColor();
-                    if (lum(col) < 0.12f) {
+                    int repl = 0;
+                    if ((col & 0xffffff) == 0xdc143c) repl = RED_LINE;      // crvene linije lista molitvi/biljeski
+                    else if (lum(col) < 0.12f) repl = DIVIDER;              // vrlo tamni razdjelnici
+                    if (repl != 0) {
                         int h = lv.getDividerHeight();
-                        lv.setDivider(new ColorDrawable(0xff3c3c3c));
+                        lv.setDivider(new ColorDrawable(repl));
                         lv.setDividerHeight(h);
                     }
                 }
