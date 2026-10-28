@@ -6,23 +6,23 @@ final class Colors {
 
     /** {kljuc, naziv, podrazumijevana boja (RRGGBB)} */
     static final String[][] ALL = {
-            { "c_bg",         "Pozadina",                    "121212" },
-            { "c_surface",    "Pozadina menija",              "1a1a18" },
-            { "c_bar",        "Tabovi",       "1f2a3f" },
-            { "c_text",       "Tekst kalendar i podmeni",          "e0dcd0" },
-            { "c_divider",    "Razdjelnici (kalendar i meni)",           "333333" },
-            { "c_red_line",   "Razdjelnici (liste molitvi)","dc143c" },
-            { "c_row",        "Kalendar: neparni dani",      "1f1f1d" },
-            { "c_row_border", "Kalendar: okvir današnjeg dana",        "2f5f99" },
-            { "c_title",      "Crveni naslovi i praznici","ff7a66" },
-            { "c_red_bar",    "Crvena traka i klizač",       "8b0000" },
-            { "c_web_text",   "Slova u listama knjiga i molitvi",              "d9d4c7" },
+            { "c_bg",         "Pozadina",                           "121212" },
+            { "c_surface",    "Pozadina menija",                    "1a1a18" },
+            { "c_bar",        "Tabovi",                             "1f2a3f" },
+            { "c_text",       "Tekst kalendar i podmeni",           "e0dcd0" },
+            { "c_divider",    "Razdjelnici (kalendar i meni)",      "333333" },
+            { "c_red_line",   "Razdjelnici (liste molitvi)",        "dc143c" },
+            { "c_row",        "Kalendar: neparni dani",             "1f1f1d" },
+            { "c_row_border", "Kalendar: okvir današnjeg dana",     "2f5f99" },
+            { "c_title",      "Crveni naslovi i praznici",          "ff7a66" },
+            { "c_red_bar",    "Crvena traka i klizač",              "8b0000" },
+            { "c_web_text",   "Slova u listama knjiga i molitvi",   "d9d4c7" },
     };
 
     /** Boje koje se ne uređuju u aplikaciji, ali ih tema i dalje ima (ostaju sa vrijednostima iz teme). */
     static final String[][] HIDDEN = {
             { "c_bar_dark",   "Statusna traka",              "0f1626" },
-            { "c_accent",     "Akcent (prekidači, pritisnuta dugmad)","6495ed" },
+            { "c_accent",     "Akcent (prekidači)",          "6495ed" },
             { "c_web_head2",  "Podnaslovi (h5, h6)",         "e6e1d6" },
             { "c_web_link",   "Linkovi",                     "8ab4f8" },
             { "c_web_visited","Posjećeni linkovi",           "c4a5f0" },
