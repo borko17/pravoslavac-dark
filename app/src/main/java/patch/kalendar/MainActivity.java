@@ -197,6 +197,33 @@ public class MainActivity extends Activity {
             }
         });
         root.addView(add);
+
+        Button reset = new Button(this);
+        reset.setText("Vrati podrazumijevane teme");
+        reset.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                confirmResetThemes();
+            }
+        });
+        root.addView(reset);
+    }
+
+    private void confirmResetThemes() {
+        new AlertDialog.Builder(this)
+                .setTitle("Vrati podrazumijevane teme")
+                .setMessage("Sve tvoje teme i izmjene bit će obrisane, a vratit će se ugrađene teme.")
+                .setNegativeButton("Otkaži", null)
+                .setPositiveButton("Vrati", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int which) {
+                        sp.edit().remove(Themes.KEY_THEMES).remove(Themes.KEY_SEL).commit();
+                        loadThemes();
+                        refreshThemes();
+                        toast("Teme vraćene na podrazumijevane");
+                    }
+                })
+                .show();
     }
 
     private void refreshThemes() {
