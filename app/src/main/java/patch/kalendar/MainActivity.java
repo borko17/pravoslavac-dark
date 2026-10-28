@@ -347,7 +347,10 @@ public class MainActivity extends Activity {
 
     private void fillRows(LinearLayout rows, Themes.Theme t) {
         rows.removeAllViews();
-        for (String[] c : Colors.ALL) rows.addView(makeColorRow(t, c[0], c[1]));
+        for (String[] c : Colors.ALL) {
+            if (Colors.hidden(c[0])) continue;
+            rows.addView(makeColorRow(t, c[0], c[1]));
+        }
     }
 
     private View makeColorRow(final Themes.Theme t, final String key, String label) {
