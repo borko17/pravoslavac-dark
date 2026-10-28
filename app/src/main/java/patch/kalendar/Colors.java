@@ -9,9 +9,7 @@ final class Colors {
             { "c_bg",         "Pozadina",                    "121212" },
             { "c_surface",    "Pozadina menija",              "1a1a18" },
             { "c_bar",        "Tabovi",       "1f2a3f" },
-            { "c_bar_dark",   "Statusna traka",              "0f1626" },
             { "c_text",       "Tekst kalendar i podmeni",          "e0dcd0" },
-            { "c_accent",     "Akcent (prekidači, pritisnuta dugmad)","6495ed" },
             { "c_divider",    "Razdjelnici (kalendar i meni)",           "333333" },
             { "c_red_line",   "Razdjelnici (liste molitvi)","dc143c" },
             { "c_row",        "Kalendar: neparni dani",      "1f1f1d" },
@@ -19,10 +17,6 @@ final class Colors {
             { "c_title",      "Crveni naslovi i praznici","ff7a66" },
             { "c_red_bar",    "Crvena traka i klizač",       "8b0000" },
             { "c_web_text",   "Slova u listama knjiga i molitvi",              "d9d4c7" },
-            { "c_web_head2",  "Podnaslovi (h5, h6)",         "e6e1d6" },
-            { "c_web_link",   "Linkovi",                     "8ab4f8" },
-            { "c_web_visited","Posjećeni linkovi",           "c4a5f0" },
-            { "c_web_line",   "Linije i tabele",             "444444" },
     };
 
     /** Boje koje se ne prikazuju u uređivanju (ostaju u temama sa podrazumijevanim vrijednostima). */
