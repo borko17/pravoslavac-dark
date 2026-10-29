@@ -44,6 +44,7 @@ final class Dark {
     static int WEB_LINK = 0xff8ab4f8;
     static int WEB_VISITED = 0xffc4a5f0;
     static int WEB_LINE = 0xff444444;
+    static int MONTH_BAR = 0xff1d1a13;
 
     /** Ucitava boje iz postavki (prilagodjena tema) ili podrazumijevane. */
     static void reload() {
@@ -64,6 +65,7 @@ final class Dark {
         WEB_LINK = Prefs.color("c_web_link");
         WEB_VISITED = Prefs.color("c_web_visited");
         WEB_LINE = Prefs.color("c_web_line");
+        MONTH_BAR = Prefs.color("c_month_bar");
     }
 
     private static ColorMatrixColorFilter INVERT;
@@ -217,6 +219,14 @@ final class Dark {
         }
     }
 
+    private static boolean isMonthBar(View v) {
+        try {
+            return "tableRow1".equals(v.getResources().getResourceEntryName(v.getId()));
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     static void fixBackground(View v) {
         Drawable d = v.getBackground();
         if (d == null) return;
@@ -224,6 +234,10 @@ final class Dark {
             int c = ((ColorDrawable) d).getColor();
             if (c == 0xff8b0000) {                       // crvena traka (npr. naslov mjeseca)
                 if (RED_BAR != c) v.setBackgroundColor(RED_BAR);
+                return;
+            }
+            if (c == 0xfffaf5e9 && isMonthBar(v)) {      // traka mjeseca i godine (tableRow1)
+                v.setBackgroundColor(MONTH_BAR);
                 return;
             }
             int m = mapBg(c);

@@ -17,6 +17,7 @@ final class Colors {
             { "c_title",      "Crveni naslovi i praznici",          "ff7a66" },
             { "c_red_bar",    "Crvena traka i klizač",              "8b0000" },
             { "c_web_text",   "Slova u listama knjiga i molitvi",   "d9d4c7" },
+            { "c_month_bar",  "Traka mjeseca i godine",             "1d1a13" },
     };
 
     /** Boje koje se ne uređuju u aplikaciji, ali ih tema i dalje ima (ostaju sa vrijednostima iz teme). */
