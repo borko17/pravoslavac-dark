@@ -31,7 +31,9 @@ final class Themes {
         /** "rrggbb" za dati kljuc (sa podrazumijevanom vrijednoscu ako nije podesen). */
         String color(String key) {
             Integer c = Colors.parse(colors.get(key));
-            return c != null ? Colors.hex(c.intValue()) : Colors.def(key);
+            if (c != null) return Colors.hex(c.intValue());
+            if ("c_web_bg".equals(key)) return color("c_bg");   // starije teme: pozadina knjiga = opsta pozadina
+            return Colors.def(key);
         }
 
         /** Potpuna kopija (sve boje se upisuju eksplicitno). */

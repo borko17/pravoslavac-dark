@@ -39,12 +39,14 @@ final class Dark {
     static int ROW_BORDER = 0xff2f5f99;
     static int TITLE = 0xffff7a66;
     static int RED_BAR = 0xff8b0000;
+    static int WEB_BG = 0xff121212;
     static int WEB_TEXT = 0xffd9d4c7;
     static int WEB_HEAD2 = 0xffe6e1d6;
     static int WEB_LINK = 0xff8ab4f8;
     static int WEB_VISITED = 0xffc4a5f0;
     static int WEB_LINE = 0xff444444;
     static int MONTH_BAR = 0xff1d1a13;
+    static int TAB_TEXT = 0xffffffff;
 
     /** Ucitava boje iz postavki (prilagodjena tema) ili podrazumijevane. */
     static void reload() {
@@ -60,12 +62,14 @@ final class Dark {
         ROW_BORDER = Prefs.color("c_row_border");
         TITLE = Prefs.color("c_title");
         RED_BAR = Prefs.color("c_red_bar");
+        WEB_BG = Prefs.color("c_web_bg");
         WEB_TEXT = Prefs.color("c_web_text");
         WEB_HEAD2 = Prefs.color("c_web_head2");
         WEB_LINK = Prefs.color("c_web_link");
         WEB_VISITED = Prefs.color("c_web_visited");
         WEB_LINE = Prefs.color("c_web_line");
         MONTH_BAR = Prefs.color("c_month_bar");
+        TAB_TEXT = Prefs.color("c_tab_text");
     }
 
     private static ColorMatrixColorFilter INVERT;
@@ -254,6 +258,13 @@ final class Dark {
 
     private static void fixOne(View v) {
         fixBackground(v);
+        if (v.getClass().getName().endsWith("TabLayout")) {
+            try {
+                v.getClass().getMethod("setTabTextColors", ColorStateList.class)
+                        .invoke(v, ColorStateList.valueOf(TAB_TEXT));
+            } catch (Throwable ignored) {
+            }
+        }
         if (v instanceof TextView) {
             TextView tv = (TextView) v;
             ColorStateList cur = tv.getTextColors();

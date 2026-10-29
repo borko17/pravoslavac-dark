@@ -11,7 +11,7 @@ final class Assets {
     /** CSS za tamnu temu; boje dolaze iz Dark.* (podrazumijevane ili prilagodjene). */
     static String darkCss() {
         return ":root{color-scheme:dark}\n"
-                + "html,body{background:" + hex(Dark.BG) + " !important;background-image:none !important;color:" + hex(Dark.WEB_TEXT) + " !important}\n"
+                + "html,body{background:" + hex(Dark.WEB_BG) + " !important;background-image:none !important;color:" + hex(Dark.WEB_TEXT) + " !important}\n"
                 + "#wrapper,div.transbox,.calibre,.calibre1{background:transparent !important;background-image:none !important}\n"
                 + "h1,h2,h3,h4,.color-red{color:" + hex(Dark.TITLE) + " !important}\n"
                 + "h5,h6{color:" + hex(Dark.WEB_HEAD2) + " !important}\n"
@@ -25,12 +25,15 @@ final class Assets {
     }
 
     static String darkJs() {
-        return DARK_JS.replace("@TEXT@", hex(Dark.WEB_TEXT)).replace("@TITLE@", hex(Dark.TITLE));
+        String css = darkCss().replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n");
+        return DARK_JS.replace("@TEXT@", hex(Dark.WEB_TEXT)).replace("@TITLE@", hex(Dark.TITLE))
+                .replace("@BG@", hex(Dark.WEB_BG)).replace("@CSS@", css);
     }
 
     static final String DARK_JS =
             "(function(){\n"
                     + "  if(window.__dkRun){window.__dkRun(document.documentElement);return;}\n"
+                    + "  try{var st=document.getElementById('__dkcss');if(!st){st=document.createElement('style');st.id='__dkcss';(document.head||document.documentElement).appendChild(st);}st.textContent='@CSS@';}catch(x){}\n"
                     + "  var SKIP={SCRIPT:1,STYLE:1,IMG:1,SVG:1,LINK:1,META:1,HEAD:1,TITLE:1,BR:1,HR:1,CANVAS:1,VIDEO:1,AUDIO:1,IFRAME:1,OBJECT:1,EMBED:1,NOSCRIPT:1};\n"
                     + "  function parse(c){var m=/rgba?\\(([^)]+)\\)/.exec(c);if(!m)return null;var a=m[1].split(',');return{r:+a[0],g:+a[1],b:+a[2],a:a.length>3?+a[3]:1};}\n"
                     + "  function lum(c){return(0.299*c.r+0.587*c.g+0.114*c.b)/255;}\n"
@@ -55,7 +58,8 @@ final class Assets {
                     + "    if(e.nodeType!==1||SKIP[e.tagName.toUpperCase()])return;\n"
                     + "    var cs=getComputedStyle(e),c=parse(cs.color),b=parse(cs.backgroundColor),v;\n"
                     + "    if(c&&(v=fgMap(c)))e.style.setProperty('color',v,'important');\n"
-                    + "    if(b&&(v=bgMap(b)))e.style.setProperty('background-color',v,'important');\n"
+                    + "    if(e===document.body||e===document.documentElement){e.style.setProperty('background-color','@BG@','important');e.style.setProperty('background-image','none','important');}\n"
+                    + "    else if(b&&(v=bgMap(b)))e.style.setProperty('background-color',v,'important');\n"
                     + "    var bi=cs.backgroundImage;\n"
                     + "    if(bi&&bi!=='none'&&/pozadina|fine-grain|paper|diagonal-maze/i.test(bi))e.style.setProperty('background-image','none','important');\n"
                     + "  }\n"

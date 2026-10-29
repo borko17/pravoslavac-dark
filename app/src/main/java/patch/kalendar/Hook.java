@@ -140,7 +140,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                     try {
                         WebView wv = (WebView) param.thisObject;
                         if (Prefs.dark() || Prefs.left()) wv.getSettings().setJavaScriptEnabled(true);
-                        if (Prefs.dark()) wv.setBackgroundColor(Dark.BG);
+                        if (Prefs.dark()) wv.setBackgroundColor(Dark.WEB_BG);
                     } catch (Throwable t) {
                         XposedBridge.log(t);
                     }
