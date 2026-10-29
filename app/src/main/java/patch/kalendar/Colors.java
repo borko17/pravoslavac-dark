@@ -18,6 +18,8 @@ final class Colors {
             { "c_red_bar",    "Crvena traka i klizač",              "8b0000" },
             { "c_web_bg",     "Pozadina knjiga i žitija",           "121212" },
             { "c_web_text",   "Slova u listama knjiga i molitvi",   "d9d4c7" },
+            { "c_web_link",   "Linkovi",                            "8ab4f8" },
+            { "c_web_visited","Posjećeni linkovi",                  "c4a5f0" },
             { "c_tab_text",   "Slova na tabovima",                  "ffffff" },
             { "c_month_bar",  "Traka mjeseca i godine",             "1d1a13" },
     };
@@ -27,8 +29,6 @@ final class Colors {
             { "c_bar_dark",   "Statusna traka",              "0f1626" },
             { "c_accent",     "Akcent (prekidači)",          "6495ed" },
             { "c_web_head2",  "Podnaslovi (h5, h6)",         "e6e1d6" },
-            { "c_web_link",   "Linkovi",                     "8ab4f8" },
-            { "c_web_visited","Posjećeni linkovi",           "c4a5f0" },
             { "c_web_line",   "Linije i tabele",             "444444" },
     };
 
