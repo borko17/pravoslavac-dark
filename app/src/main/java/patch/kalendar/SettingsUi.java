@@ -614,26 +614,40 @@ final class SettingsUi {
     private void randomThemeMenu() {
         builder()
                 .setTitle("Насумична тема")
-                .setItems(new CharSequence[] { "Светла", "Тамна" },
+                .setItems(new CharSequence[] { "Светла", "Тамна", "Од моје боје…" },
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface d, int which) {
-                                addRandomTheme(which == 0 ? RandomTheme.LIGHT : RandomTheme.DARK);
+                                if (which == 2) {
+                                    // osnovna boja: svijetla/tamna tema se odredjuje po njenoj svjetlini
+                                    ColorPicker.show(act, Dark.BG, new ColorPicker.Listener() {
+                                        @Override
+                                        public void onColor(int color) {
+                                            addRandomTheme(RandomTheme.ANY, Integer.valueOf(color));
+                                        }
+                                    });
+                                } else {
+                                    addRandomTheme(which == 0 ? RandomTheme.LIGHT : RandomTheme.DARK, null);
+                                }
                             }
                         })
                 .show();
     }
 
     /** Pravi nasumicnu temu (kontrast je zagarantovan) i odmah je bira. Prethodna, nepreimenovana nasumicna tema se mijenja novom. */
-    private void addRandomTheme(int mode) {
-        RandomTheme.Result res = RandomTheme.generate(new java.util.Random(), mode);
+    private void addRandomTheme(int mode, Integer base) {
+        RandomTheme.Result res = RandomTheme.generate(new java.util.Random(), mode, base);
+        if (base != null && res.adjusted) toast("Боја је прилагођена ради читљивости");
         Themes.Theme n = new Themes.Theme("t" + System.currentTimeMillis(), res.name);
         n.colors.putAll(res.colors);
         for (String[] c : Colors.HIDDEN) {
             if (!n.colors.containsKey(c[0])) n.colors.put(c[0], Colors.def(c[0]));
         }
         Themes.Theme cur = Themes.find(themes, selId);
-        int at = cur.name.startsWith(RandomTheme.NAME_PREFIX + " ·") ? themes.indexOf(cur) : -1;
+        // posljednja generisana (nasumicna ili iz zadate boje) tema koja nije preimenovana se mijenja novom
+        boolean generated = cur.name.startsWith(RandomTheme.NAME_PREFIX + " ·")
+                || cur.name.startsWith(RandomTheme.FROM_COLOR_PREFIX + " ·");
+        int at = generated ? themes.indexOf(cur) : -1;
         if (at >= 0) themes.set(at, n);
         else themes.add(n);
         selId = n.id;

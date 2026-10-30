@@ -17,16 +17,21 @@ final class RandomTheme {
 
     /** Prefiks naziva tema koje je napravio generator (takve se zamjenjuju novim nasumicnim, ako nisu preimenovane). */
     static final String NAME_PREFIX = "Насумична";
+    /** Prefiks naziva tema napravljenih iz zadate osnovne boje (isto pravilo zamjene kao za nasumicne). */
+    static final String FROM_COLOR_PREFIX = "Из боје";
 
     static final class Result {
         final boolean light;
         final String name;
         final Map<String, String> colors;
+        /** true ako je zadata osnovna boja morala biti prilagodjena (svjetlina/zasicenost) radi citljivosti. */
+        final boolean adjusted;
 
-        Result(boolean light, String name, Map<String, String> colors) {
+        Result(boolean light, String name, Map<String, String> colors, boolean adjusted) {
             this.light = light;
             this.name = name;
             this.colors = colors;
+            this.adjusted = adjusted;
         }
     }
 
@@ -40,16 +45,38 @@ final class RandomTheme {
     static final double MIN_ACCENT = 3.0;    // akcent, okvir danasnjeg dana, crvene linije
 
     static Result generate(Random r, int mode) {
+        return generate(r, mode, null);
+    }
+
+    /**
+     * Ako je zadata osnovna boja (base), iz nje se uzimaju nijansa, zasicenost i svjetlina pozadina:
+     * svijetla/tamna tema se odredjuje po njenoj svjetlini, a zasicenost i svjetlina se ogranice na raspon
+     * u kom je kontrast zagarantovan. Sve ostalo (naslovi, linkovi, akcenti) se i dalje bira nasumicno.
+     */
+    static Result generate(Random r, int mode, Integer base) {
+        float[] bh = base != null ? rgbToHsl(base.intValue()) : null;
         boolean light;
-        if (mode == LIGHT) light = true;
+        if (bh != null) light = bh[2] >= 0.5f;
+        else if (mode == LIGHT) light = true;
         else if (mode == DARK) light = false;
         else light = r.nextBoolean();
         int dir = light ? -1 : 1; // smjer pomjeranja svjetline kad treba vise kontrasta
 
         // ---- osnovna nijansa i pozadine
-        float h0 = r.nextFloat() * 360f;
-        float bgS = light ? 0.20f + r.nextFloat() * 0.40f : 0.08f + r.nextFloat() * 0.27f;
-        float bgL = light ? 0.93f + r.nextFloat() * 0.045f : 0.045f + r.nextFloat() * 0.075f;
+        boolean adjusted = false;
+        float h0;
+        float bgS;
+        float bgL;
+        if (bh != null) {
+            h0 = bh[0];
+            bgS = clamp(bh[1], light ? 0.12f : 0.05f, light ? 0.60f : 0.35f);
+            bgL = clamp(bh[2], light ? 0.93f : 0.03f, light ? 0.975f : 0.12f);
+            adjusted = Math.abs(bgS - bh[1]) > 0.02f || Math.abs(bgL - bh[2]) > 0.02f;
+        } else {
+            h0 = r.nextFloat() * 360f;
+            bgS = light ? 0.20f + r.nextFloat() * 0.40f : 0.08f + r.nextFloat() * 0.27f;
+            bgL = light ? 0.93f + r.nextFloat() * 0.045f : 0.045f + r.nextFloat() * 0.075f;
+        }
         int bg = hsl(h0, bgS, bgL);
         int surface = hsl(h0, bgS, clamp(light ? bgL + 0.03f : bgL + 0.025f, 0f, 0.99f));
         int row = hsl(h0, Math.min(1f, bgS + 0.05f), light ? bgL - 0.045f : bgL + 0.04f);
@@ -162,8 +189,9 @@ final class RandomTheme {
         put(m, "c_web_line", webLine);
 
         String tag = Integer.toHexString(0x1000 + r.nextInt(0xfff)).substring(1);
-        String name = NAME_PREFIX + " · " + (light ? "светла" : "тамна") + " · " + tag;
-        return new Result(light, name, m);
+        String name = (bh != null ? FROM_COLOR_PREFIX + " · #" + Colors.hex(base.intValue()) : NAME_PREFIX + " · " + tag)
+                + " · " + (light ? "светла" : "тамна");
+        return new Result(light, name, m, adjusted);
     }
 
     // ------------------------------------------------------------------ boje i kontrast
@@ -179,6 +207,28 @@ final class RandomTheme {
     private static float hueDist(float a, float b) {
         float d = Math.abs(((a - b) % 360f + 360f) % 360f);
         return d > 180f ? 360f - d : d;
+    }
+
+    /** 0xffRRGGBB -> {h u stepenima, s 0..1, l 0..1} */
+    static float[] rgbToHsl(int c) {
+        float r = ((c >> 16) & 255) / 255f;
+        float g = ((c >> 8) & 255) / 255f;
+        float b = (c & 255) / 255f;
+        float max = Math.max(r, Math.max(g, b));
+        float min = Math.min(r, Math.min(g, b));
+        float l = (max + min) / 2f;
+        float d = max - min;
+        float h = 0f;
+        float s = 0f;
+        if (d > 0.0001f) {
+            s = d / (1f - Math.abs(2f * l - 1f));
+            if (max == r) h = ((g - b) / d) % 6f;
+            else if (max == g) h = (b - r) / d + 2f;
+            else h = (r - g) / d + 4f;
+            h *= 60f;
+            if (h < 0f) h += 360f;
+        }
+        return new float[] { h, clamp(s, 0f, 1f), l };
     }
 
     /** HSL (h u stepenima, s i l 0..1) -> 0xffRRGGBB */
