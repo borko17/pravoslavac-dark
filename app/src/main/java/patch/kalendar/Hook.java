@@ -551,9 +551,23 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         try {
             View root = a.getWindow().getDecorView();
             View d = findByClass(root, "DrawerLayout");
-            if (d != null) d.getClass().getMethod("closeDrawers").invoke(d);
+            if (d == null) return;
+            Class<?> c = d.getClass();
+            try {
+                c.getMethod("closeDrawers").invoke(d);
+                return;
+            } catch (NoSuchMethodException e) {
+                // aplikacija je obfuskirana: closeDrawers() = c(), closeDrawers(boolean) = d(boolean)
+            }
+            try {
+                c.getMethod("c").invoke(d);
+                return;
+            } catch (NoSuchMethodException e) {
+                // probaj sljedece
+            }
+            c.getMethod("d", boolean.class).invoke(d, Boolean.FALSE);
         } catch (Throwable t) {
-            // nije kriticno
+            XposedBridge.log(t);
         }
     }
 

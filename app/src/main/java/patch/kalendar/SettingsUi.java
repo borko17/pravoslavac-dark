@@ -17,6 +17,9 @@ import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -70,6 +73,7 @@ final class SettingsUi {
         loadThemes();
         dialog = new Dialog(act, android.R.style.Theme_Material_NoActionBar);
         build();
+        placeBelowBar();
         dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
             public void onDismiss(DialogInterface d) {
@@ -89,6 +93,74 @@ final class SettingsUi {
             }
         });
         dialog.show();
+    }
+
+
+    // ------------------------------------------------- ispod trake aplikacije
+
+    /** Pomijera prozor podesavanja ispod trake aplikacije ("Pravoslavac"), da traka ostane vidljiva. */
+    private void placeBelowBar() {
+        try {
+            int top = barBottom();
+            if (top <= 0) return;
+            View decor = act.getWindow().getDecorView();
+            int[] dl = new int[2];
+            decor.getLocationOnScreen(dl);
+            int h = dl[1] + decor.getHeight() - top;
+            if (h < dp(120)) return;
+            Window w = dialog.getWindow();
+            w.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN);
+            w.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            w.setGravity(Gravity.TOP | Gravity.START);
+            WindowManager.LayoutParams lp = w.getAttributes();
+            lp.x = 0;
+            lp.y = top;
+            lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+            lp.height = h;
+            w.setAttributes(lp);
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
+    }
+
+    /** Donja ivica trake aplikacije na ekranu (px) ili -1 ako trake nema. */
+    private int barBottom() {
+        try {
+            View root = act.getWindow().getDecorView();
+            String[] names = {"action_bar_container", "action_bar", "toolbar", "tool_bar"};
+            for (String n : names) {
+                int id = act.getResources().getIdentifier(n, "id", act.getPackageName());
+                if (id == 0) continue;
+                View v = root.findViewById(id);
+                int b = bottomOf(v);
+                if (b > 0) return b;
+            }
+            return bottomOf(findBar(root));
+        } catch (Throwable t) {
+            return -1;
+        }
+    }
+
+    private static int bottomOf(View v) {
+        if (v == null || v.getVisibility() != View.VISIBLE || v.getHeight() <= 0) return -1;
+        int[] loc = new int[2];
+        v.getLocationOnScreen(loc);
+        return loc[1] + v.getHeight();
+    }
+
+    private static View findBar(View v) {
+        for (Class<?> c = v.getClass(); c != null; c = c.getSuperclass()) {
+            String n = c.getSimpleName();
+            if (n.equals("Toolbar") || n.equals("ActionBarContainer")) return v;
+        }
+        if (v instanceof ViewGroup) {
+            ViewGroup g = (ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) {
+                View r = findBar(g.getChildAt(i));
+                if (r != null) return r;
+            }
+        }
+        return null;
     }
 
     // ------------------------------------------------------------------ izgled
@@ -128,25 +200,6 @@ final class SettingsUi {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(pad, pad, pad, pad);
         root.setBackgroundColor(Dark.BG);
-
-        // naslov + zatvaranje
-        LinearLayout head = new LinearLayout(act);
-        head.setOrientation(LinearLayout.HORIZONTAL);
-        head.setGravity(Gravity.CENTER_VERTICAL);
-        TextView title = label("Подешавања", 24f, text());
-        title.setTypeface(Typeface.DEFAULT_BOLD);
-        head.addView(title, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        TextView close = label("\u2715", 26f, text());
-        close.setPadding(dp(14), dp(6), dp(6), dp(6));
-        close.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dialog.dismiss();
-            }
-        });
-        head.addView(close);
-        root.addView(head);
-        root.addView(new View(act), new LinearLayout.LayoutParams(1, dp(12)));
 
         root.addView(makeSwitch("Preskoči uvodni ekran", "Aplikacija se otvara bez uvodnog ekrana.",
                 Prefs.KEY_SKIP_SPLASH, true));
