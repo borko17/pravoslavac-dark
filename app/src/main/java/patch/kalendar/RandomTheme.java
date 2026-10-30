@@ -91,7 +91,17 @@ final class RandomTheme {
 
         // ---- akcenti i linije
         int accent = fit(hl, as, light ? 0.40f : 0.62f, dir, MIN_ACCENT, bg, surface, row);
-        int rowBorder = fit(hl + 20f, as, light ? 0.40f : 0.60f, dir, MIN_ACCENT, bg, row);
+        int rowBorderFit = fit(hl + 20f, as, light ? 0.40f : 0.60f, dir, MIN_ACCENT, bg, row);
+        // okvir danasnjeg dana: mjesavina boje akcenta i boje tabova (da se uklopi u paletu);
+        // udio tabova se smanjuje dok okvir ne dostigne minimalni kontrast prema pozadinama
+        int rowBorder = rowBorderFit;
+        for (float t = 0.5f; t >= 0f; t -= 0.05f) {
+            int c = mix(rowBorderFit, bar, t);
+            if (minContrast(c, bg, row) >= MIN_ACCENT) {
+                rowBorder = c;
+                break;
+            }
+        }
         int redLine = fit(ht, as, light ? 0.40f : 0.58f, dir, MIN_ACCENT, bg, surface, row, webBg);
 
         // crvena traka (naslov mjeseca): bijela slova na njoj (>= 4.5) i vidljiva na pozadini (>= 1.8);
