@@ -72,7 +72,7 @@ final class ColorPicker {
 
         update.run();
 
-        new AlertDialog.Builder(ctx)
+        new AlertDialog.Builder(ctx, AlertDialog.THEME_DEVICE_DEFAULT_DARK)
                 .setView(root)
                 .setPositiveButton("U redu", new DialogInterface.OnClickListener() {
                     @Override

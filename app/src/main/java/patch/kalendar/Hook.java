@@ -53,6 +53,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
         if (!PKG.equals(lpparam.packageName)) return;
         final ClassLoader cl = lpparam.classLoader;
+        Prefs.init(lpparam.appInfo != null ? lpparam.appInfo.dataDir : null);
         Dark.reload();
 
         // Splash: ne prikazuj pocetni ekran, odmah idi na kalendar.
@@ -182,6 +183,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
 
         hookText(cl);
         hookCss(cl);
+        hookSettingsMenu(cl);
 
         // Lijevo poravnanje: ugasi justifikaciju u nativnim TextView-ovima (Android 8+).
         hook("android.widget.TextView", cl, "setJustificationMode", int.class, new XC_MethodHook() {
@@ -365,13 +367,22 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         }
     }
 
+    /** Resursi aplikacije (cuvaju se da bi se boje mogle promijeniti i dok je aplikacija otvorena). */
+    private static XResources RES;
+
     @Override
     public void handleInitPackageResources(XC_InitPackageResources.InitPackageResourcesParam resparam)
             throws Throwable {
         if (!PKG.equals(resparam.packageName)) return;
-        if (!Prefs.dark()) return;
+        RES = resparam.res;
+        reapplyResources();
+    }
+
+    /** (Ponovo) postavi zamjene resursa u bojama odabrane teme. Ne radi nista ako je tema iskljucena. */
+    static void reapplyResources() {
+        XResources res = RES;
+        if (res == null || !Prefs.dark()) return;
         Dark.reload();
-        XResources res = resparam.res;
 
         rc(res, "primary_material_dark", Dark.BAR);
         rc(res, "primary_dark_material_dark", Dark.BAR_DARK);
@@ -399,7 +410,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                 public Drawable newDrawable(XResources r, int id) throws Throwable {
                     GradientDrawable g = new GradientDrawable();
                     g.setShape(GradientDrawable.RECTANGLE);
-                    g.setColor(Dark.RED_BAR);
+                    g.setColor(Dark.SCROLL);
                     g.setCornerRadius(4f * r.getDisplayMetrics().density);
                     return g;
                 }
@@ -422,5 +433,141 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         } catch (Throwable t) {
             XposedBridge.log(t);
         }
+    }
+
+    // ------------------------------------------------------------------ meni: grupa "Podesavanja"
+
+    /** Naziv nove grupe u bocnom meniju (na kraju liste, bez podstavki). */
+    static final String MENU_TITLE = "Подешавања";
+
+    /** Naziv grupe (s60.b) ili null. */
+    private static String groupName(Object g) {
+        if (g == null) return null;
+        if (g instanceof String) return (String) g;
+        try {
+            Object n = XposedHelpers.getObjectField(g, "b");
+            return n != null ? n.toString() : null;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** Dodaje grupu "Podesavanja" na kraj liste grupa adaptera bocnog menija (zl0.e). */
+    @SuppressWarnings("unchecked")
+    private static void addMenuGroup(Object activity) throws Throwable {
+        android.widget.ExpandableListView lv =
+                (android.widget.ExpandableListView) XposedHelpers.getObjectField(activity, "H0");
+        android.widget.ExpandableListAdapter ad = lv.getExpandableListAdapter();
+        java.util.List<Object> list = (java.util.List<Object>) XposedHelpers.getObjectField(ad, "e");
+        for (Object g : list) {
+            if (MENU_TITLE.equals(groupName(g))) return;
+        }
+        java.lang.reflect.Constructor<?> ctor = list.get(0).getClass().getDeclaredConstructor();
+        ctor.setAccessible(true);
+        Object g = ctor.newInstance();
+        java.lang.reflect.Field f = g.getClass().getDeclaredField("b");
+        f.setAccessible(true);
+        f.set(g, MENU_TITLE);
+        list.add(g);
+        hookGroupIcon(ad.getClass());
+        if (ad instanceof android.widget.BaseExpandableListAdapter) {
+            ((android.widget.BaseExpandableListAdapter) ad).notifyDataSetChanged();
+        }
+    }
+
+    private static boolean groupIconHooked;
+
+    /** Aplikacija bira ikonu grupe po poziciji; za nasu grupu postavi zupcanik umjesto zaostale ikone. */
+    private static synchronized void hookGroupIcon(Class<?> adapterClass) {
+        if (groupIconHooked) return;
+        groupIconHooked = true;
+        XposedBridge.hookAllMethods(adapterClass, "getGroupView", new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) {
+                try {
+                    int pos = ((Integer) param.args[0]).intValue();
+                    android.widget.BaseExpandableListAdapter ad =
+                            (android.widget.BaseExpandableListAdapter) param.thisObject;
+                    if (!MENU_TITLE.equals(groupName(ad.getGroup(pos)))) return;
+                    View v = (View) param.getResult();
+                    int id = v.getResources().getIdentifier("tag_img_group", "id", PKG);
+                    View iv = id != 0 ? v.findViewById(id) : null;
+                    if (iv instanceof android.widget.ImageView) {
+                        int px = Math.round(32f * v.getResources().getDisplayMetrics().density);
+                        ((android.widget.ImageView) iv).setImageDrawable(new GearDrawable(px));
+                    }
+                } catch (Throwable t) {
+                    XposedBridge.log(t);
+                }
+            }
+        });
+    }
+
+    private static void hookSettingsMenu(final ClassLoader cl) {
+        // Dodaj grupu poslije gradnje menija.
+        hook("com.pravoslavac.MainActivity", cl, "onCreate", "android.os.Bundle", new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) {
+                try {
+                    addMenuGroup(param.thisObject);
+                } catch (Throwable t) {
+                    XposedBridge.log(t);
+                }
+            }
+        });
+
+        // Klik na grupu: otvori Podesavanja umjesto originalne obrade.
+        hook("android.widget.ExpandableListView", cl, "setOnGroupClickListener",
+                android.widget.ExpandableListView.OnGroupClickListener.class, new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        final android.widget.ExpandableListView.OnGroupClickListener orig =
+                                (android.widget.ExpandableListView.OnGroupClickListener) param.args[0];
+                        if (orig == null) return;
+                        param.args[0] = new android.widget.ExpandableListView.OnGroupClickListener() {
+                            @Override
+                            public boolean onGroupClick(android.widget.ExpandableListView parent, View v,
+                                                        int groupPosition, long id) {
+                                try {
+                                    Object g = parent.getExpandableListAdapter().getGroup(groupPosition);
+                                    if (MENU_TITLE.equals(groupName(g)) && parent.getContext() instanceof Activity) {
+                                        Activity a = (Activity) parent.getContext();
+                                        closeDrawer(a);
+                                        SettingsUi.show(a);
+                                        return true;
+                                    }
+                                } catch (Throwable t) {
+                                    XposedBridge.log(t);
+                                }
+                                return orig.onGroupClick(parent, v, groupPosition, id);
+                            }
+                        };
+                    }
+                });
+    }
+
+    /** Zatvara bocni meni (DrawerLayout) ako ga ima u hijerarhiji aktivnosti. */
+    private static void closeDrawer(Activity a) {
+        try {
+            View root = a.getWindow().getDecorView();
+            View d = findByClass(root, "DrawerLayout");
+            if (d != null) d.getClass().getMethod("closeDrawers").invoke(d);
+        } catch (Throwable t) {
+            // nije kriticno
+        }
+    }
+
+    private static View findByClass(View v, String simpleName) {
+        for (Class<?> c = v.getClass(); c != null; c = c.getSuperclass()) {
+            if (c.getSimpleName().equals(simpleName)) return v;
+        }
+        if (v instanceof ViewGroup) {
+            ViewGroup g = (ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) {
+                View r = findByClass(g.getChildAt(i), simpleName);
+                if (r != null) return r;
+            }
+        }
+        return null;
     }
 }

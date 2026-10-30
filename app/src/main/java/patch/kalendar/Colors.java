@@ -4,25 +4,46 @@ package patch.kalendar;
 final class Colors {
     private Colors() {}
 
-    /** {kljuc, naziv, podrazumijevana boja (RRGGBB)} */
+    /** {kljuc, naziv, podrazumijevana boja (RRGGBB)}; redoslijed je redoslijed prikaza (po grupama, vidi GROUPS). */
     static final String[][] ALL = {
-            { "c_bg",         "Pozadina",                           "121212" },
+            // Pozadine
+            { "c_bg",         "Pozadina kalendara",                 "121212" },
             { "c_surface",    "Pozadina menija",                    "1a1a18" },
-            { "c_bar",        "Tabovi",                             "1f2a3f" },
-            { "c_text",       "Tekst kalendar i podmeni",           "e0dcd0" },
-            { "c_divider",    "Razdjelnici (kalendar i meni)",      "333333" },
-            { "c_red_line",   "Razdjelnici (liste molitvi)",        "dc143c" },
-            { "c_row",        "Kalendar: neparni dani",             "1f1f1d" },
-            { "c_row_border", "Kalendar: okvir današnjeg dana",     "2f5f99" },
-            { "c_title",      "Crveni naslovi i praznici",          "ff7a66" },
-            { "c_red_bar",    "Crvena traka i klizač",              "8b0000" },
             { "c_web_bg",     "Pozadina knjiga i žitija",           "121212" },
-            { "c_web_text",   "Slova u listama knjiga i molitvi",   "d9d4c7" },
+            // Kalendar
+            { "c_row",        "Neparni dani",                       "1f1f1d" },
+            { "c_row_border", "Okvir današnjeg dana",               "2f5f99" },
+            // Tekst
+            { "c_text",       "Kalendar i podmeni",                 "e0dcd0" },
+            { "c_title",      "Naslovi, praznici, postovi",         "ff7a66" },
+            { "c_web_text",   "Liste knjiga i molitvi",             "d9d4c7" },
+            { "c_tab_text",   "Slova na tabovima",                  "ffffff" },
             { "c_web_link",   "Linkovi",                            "8ab4f8" },
             { "c_web_visited","Posjećeni linkovi",                  "c4a5f0" },
-            { "c_tab_text",   "Slova na tabovima",                  "ffffff" },
+            // Elementi
+            { "c_bar",        "Tabovi",                             "1f2a3f" },
             { "c_month_bar",  "Traka mjeseca i godine",             "1d1a13" },
+            { "c_scroll",     "Klizač",                             "8b0000" },
+            // Razdjelnici
+            { "c_divider",    "Kalendar i meni",                    "333333" },
+            { "c_red_bar",    "Ispod datuma u kalendaru",           "8b0000" },
+            { "c_red_line",   "Liste molitvi",                      "dc143c" },
     };
+
+    /** {naslov grupe, kljuc prve boje u grupi}: naslov se prikazuje ispred te boje u ALL. */
+    static final String[][] GROUPS = {
+            { "Pozadine",     "c_bg" },
+            { "Kalendar",     "c_row" },
+            { "Tekst",        "c_text" },
+            { "Elementi",     "c_bar" },
+            { "Razdjelnici",  "c_divider" },
+    };
+
+    /** Naslov grupe koja pocinje ovom bojom, ili null. */
+    static String groupBefore(String key) {
+        for (String[] g : GROUPS) if (g[1].equals(key)) return g[0];
+        return null;
+    }
 
     /** Boje koje se ne uređuju u aplikaciji, ali ih tema i dalje ima (ostaju sa vrijednostima iz teme). */
     static final String[][] HIDDEN = {

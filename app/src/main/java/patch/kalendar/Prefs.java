@@ -1,29 +1,50 @@
 package patch.kalendar;
 
+import java.io.File;
+
 import de.robv.android.xposed.XSharedPreferences;
 
-/** Cita postavke koje korisnik podesi u aplikaciji modula (MainActivity). Izvrsava se u procesu Pravoslavca. */
+/** Cita postavke koje korisnik podesi u Podesavanjima unutar Pravoslavca (SettingsUi). Izvrsava se u procesu Pravoslavca. */
 final class Prefs {
     private Prefs() {}
 
     static final String MODULE_PKG = "patch.kalendar";
-    static final String FILE = "settings";
+    /** Fajl postavki u podacima Pravoslavca (pise ga SettingsUi, cita ovaj hook). */
+    static final String FILE = "patch_settings";
+    /** Fajl koji je pisala stara aplikacija modula (koristi se samo za jednokratni uvoz). */
+    static final String OLD_FILE = "settings";
 
     static final String KEY_OPEN_CALENDAR = "open_calendar";
     static final String KEY_SKIP_SPLASH = "skip_splash";
     static final String KEY_DARK = "dark";
     static final String KEY_LEFT = "left_align";
 
+    private static String dataDir;
     private static XSharedPreferences xp;
     private static long lastCheck;
+    private static boolean force;
+
+    /** Postavlja direktorij podataka Pravoslavca (poziva se cim je poznat). */
+    static void init(String dir) {
+        if (dir != null && dir.length() > 0) dataDir = dir;
+    }
+
+    /** Odmah ponovo ucitaj postavke iz fajla (poslije izmjene u Podesavanjima). */
+    static synchronized void refresh() {
+        force = true;
+    }
 
     private static XSharedPreferences sp() {
         if (xp == null) {
-            xp = new XSharedPreferences(MODULE_PKG, FILE);
-            xp.makeWorldReadable();
+            String dir = dataDir != null ? dataDir : "/data/data/" + Hook.PKG;
+            xp = new XSharedPreferences(new File(dir, "shared_prefs/" + FILE + ".xml"));
         }
         long now = System.currentTimeMillis();
-        if (now - lastCheck > 1000L) {
+        if (force) {
+            force = false;
+            lastCheck = now;
+            xp.reload();
+        } else if (now - lastCheck > 1000L) {
             lastCheck = now;
             if (xp.hasFileChanged()) xp.reload();
         }

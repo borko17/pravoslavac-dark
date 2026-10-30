@@ -39,6 +39,7 @@ final class Dark {
     static int ROW_BORDER = 0xff2f5f99;
     static int TITLE = 0xffff7a66;
     static int RED_BAR = 0xff8b0000;
+    static int SCROLL = 0xff8b0000;
     static int WEB_BG = 0xff121212;
     static int WEB_TEXT = 0xffd9d4c7;
     static int WEB_HEAD2 = 0xffe6e1d6;
@@ -62,6 +63,7 @@ final class Dark {
         ROW_BORDER = Prefs.color("c_row_border");
         TITLE = Prefs.color("c_title");
         RED_BAR = Prefs.color("c_red_bar");
+        SCROLL = Prefs.color("c_scroll");
         WEB_BG = Prefs.color("c_web_bg");
         WEB_TEXT = Prefs.color("c_web_text");
         WEB_HEAD2 = Prefs.color("c_web_head2");

@@ -18,8 +18,8 @@ android {
         minSdk 21
         //noinspection TargetSdkVersion
         targetSdk 37
-        versionCode 10
-        versionName '1.9-dark'
+        versionCode 13
+        versionName '2.0.2-dark'
     }
 
     signingConfigs {

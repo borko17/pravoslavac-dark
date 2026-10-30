@@ -33,6 +33,7 @@ final class Themes {
             Integer c = Colors.parse(colors.get(key));
             if (c != null) return Colors.hex(c.intValue());
             if ("c_web_bg".equals(key)) return color("c_bg");   // starije teme: pozadina knjiga = opsta pozadina
+            if ("c_scroll".equals(key)) return color("c_red_bar");  // starije teme: klizač = boja crvenih linija
             return Colors.def(key);
         }
 
