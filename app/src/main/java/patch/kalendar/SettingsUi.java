@@ -39,7 +39,6 @@ import android.widget.Toast;
 import java.util.List;
 import java.util.Map;
 
-import de.robv.android.xposed.XSharedPreferences;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 
@@ -475,7 +474,7 @@ final class SettingsUi {
                         Dark.reload();
                         Hook.reapplyResources();
                     } else {
-                        toast("Примењује након поновног покретања апликације.");
+                        toast("Поново покрени апликацију.");
                     }
                     host.post(new Runnable() {
                         @Override
@@ -580,76 +579,6 @@ final class SettingsUi {
             }
         });
         root.addView(rnd);
-
-        Button reset = new Button(act);
-        reset.setText("Врати подразумеване теме");
-        reset.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                confirmResetThemes();
-            }
-        });
-        root.addView(reset);
-
-        Button imp = new Button(act);
-        imp.setText("Увези поставке из старе апликације модула");
-        imp.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                importOld();
-            }
-        });
-        root.addView(imp);
-    }
-
-    /** Jednokratni uvoz tema i prekidaca koje je stara aplikacija modula spremila u LSPosed. */
-    private void importOld() {
-        try {
-            XSharedPreferences old = new XSharedPreferences(Prefs.MODULE_PKG, Prefs.OLD_FILE);
-            old.makeWorldReadable();
-            String json = old.getString(Themes.KEY_THEMES, null);
-            if (json == null) {
-                toast("Нема старих поставки за увоз");
-                return;
-            }
-            SharedPreferences.Editor e = sp.edit();
-            e.putString(Themes.KEY_THEMES, json);
-            String sel = old.getString(Themes.KEY_SEL, null);
-            if (sel != null) e.putString(Themes.KEY_SEL, sel);
-            String[] bools = { Prefs.KEY_SKIP_SPLASH, Prefs.KEY_LEFT, Prefs.KEY_OPEN_CALENDAR, Prefs.KEY_DARK };
-            for (String k : bools) {
-                if (old.contains(k)) e.putBoolean(k, old.getBoolean(k, true));
-            }
-            e.commit();
-            Prefs.refresh();
-            loadThemes();
-            Dark.reload();
-            Hook.reapplyResources();
-            dirty = true;
-            build();
-            toast("Поставке увезене");
-        } catch (Throwable t) {
-            XposedBridge.log(t);
-            toast("Увоз није успео");
-        }
-    }
-
-    private void confirmResetThemes() {
-        builder()
-                .setTitle("Врати подразумеване теме")
-                .setMessage("Све твоје теме и измене биће обрисане, а вратиће се уграђене теме.")
-                .setNegativeButton("Откажи", null)
-                .setPositiveButton("Врати", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface d, int which) {
-                        sp.edit().remove(Themes.KEY_THEMES).remove(Themes.KEY_SEL).commit();
-                        loadThemes();
-                        saveThemes();
-                        build();
-                        toast("Теме враћене на подразумеване");
-                    }
-                })
-                .show();
     }
 
     private void showThemeMenu(final Themes.Theme t) {
@@ -685,12 +614,11 @@ final class SettingsUi {
     private void randomThemeMenu() {
         builder()
                 .setTitle("Насумична тема")
-                .setItems(new CharSequence[] { "Светла или тамна", "Светла", "Тамна" },
+                .setItems(new CharSequence[] { "Светла", "Тамна" },
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface d, int which) {
-                                addRandomTheme(which == 1 ? RandomTheme.LIGHT
-                                        : which == 2 ? RandomTheme.DARK : RandomTheme.ANY);
+                                addRandomTheme(which == 0 ? RandomTheme.LIGHT : RandomTheme.DARK);
                             }
                         })
                 .show();
