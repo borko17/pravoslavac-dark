@@ -10,7 +10,7 @@ final class Assets {
 
     /** CSS za tamnu temu; boje dolaze iz Dark.* (podrazumijevane ili prilagodjene). */
     static String darkCss() {
-        return ":root{color-scheme:dark}\n"
+        return ":root{color-scheme:" + (Dark.light() ? "light" : "dark") + "}\n"
                 + "html,body{background:" + hex(Dark.WEB_BG) + " !important;background-image:none !important;color:" + hex(Dark.WEB_TEXT) + " !important}\n"
                 + "#wrapper,div.transbox,.calibre,.calibre1{background:transparent !important;background-image:none !important}\n"
                 + "h1,h2,h3,h4,.color-red{color:" + hex(Dark.TITLE) + " !important}\n"
@@ -21,19 +21,21 @@ final class Assets {
                 + "hr{border-color:" + hex(Dark.WEB_LINE) + " !important;color:" + hex(Dark.WEB_LINE) + " !important;background-color:" + hex(Dark.WEB_LINE) + "}\n"
                 + "table,td,th{border-color:" + hex(Dark.WEB_LINE) + "}\n"
                 + "input,select,textarea,button{background:" + hex(Dark.SURFACE) + ";color:" + hex(Dark.WEB_TEXT) + ";border-color:" + hex(Dark.WEB_LINE) + "}\n"
-                + "::-webkit-scrollbar-track{-webkit-box-shadow:inset 0 0 3px rgba(0,0,0,.8)}\n";
+                + "::-webkit-scrollbar-track{-webkit-box-shadow:inset 0 0 3px rgba(0,0,0," + (Dark.light() ? ".25" : ".8") + ")}\n";
     }
 
     static String darkJs() {
         String css = darkCss().replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n");
         return DARK_JS.replace("@TEXT@", hex(Dark.WEB_TEXT)).replace("@TITLE@", hex(Dark.TITLE))
-                .replace("@BG@", hex(Dark.WEB_BG)).replace("@CSS@", css);
+                .replace("@BG@", hex(Dark.WEB_BG)).replace("@LIGHT@", Dark.light() ? "true" : "false")
+                .replace("@CSS@", css);
     }
 
     static final String DARK_JS =
             "(function(){\n"
                     + "  if(window.__dkRun){window.__dkRun(document.documentElement);return;}\n"
                     + "  try{var st=document.getElementById('__dkcss');if(!st){st=document.createElement('style');st.id='__dkcss';(document.head||document.documentElement).appendChild(st);}st.textContent='@CSS@';}catch(x){}\n"
+                    + "  var LIGHT=@LIGHT@;\n"
                     + "  var SKIP={SCRIPT:1,STYLE:1,IMG:1,SVG:1,LINK:1,META:1,HEAD:1,TITLE:1,BR:1,HR:1,CANVAS:1,VIDEO:1,AUDIO:1,IFRAME:1,OBJECT:1,EMBED:1,NOSCRIPT:1};\n"
                     + "  function parse(c){var m=/rgba?\\(([^)]+)\\)/.exec(c);if(!m)return null;var a=m[1].split(',');return{r:+a[0],g:+a[1],b:+a[2],a:a.length>3?+a[3]:1};}\n"
                     + "  function lum(c){return(0.299*c.r+0.587*c.g+0.114*c.b)/255;}\n"
@@ -46,12 +48,14 @@ final class Assets {
                     + "    var x=toHsl(c.r,c.g,c.b);\n"
                     + "    if(x[1]<0.2)return'@TEXT@';\n"
                     + "    if(x[1]>=0.6&&(x[0]<=15||x[0]>=345))return'@TITLE@';\n"
+                    + "    if(LIGHT)return null;\n"
                     + "    return hsl(x[0],Math.min(1,x[1])*0.9,0.72);\n"
                     + "  }\n"
                     + "  function bgMap(c){\n"
                     + "    if(c.a<0.1)return null;\n"
                     + "    var x=toHsl(c.r,c.g,c.b);\n"
                     + "    if(x[2]<0.6)return null;\n"
+                    + "    if(LIGHT)return'@BG@';\n"
                     + "    return hsl(x[0],x[1]*0.35,0.07+(1-x[2])*0.45);\n"
                     + "  }\n"
                     + "  function fix(e){\n"

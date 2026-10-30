@@ -219,6 +219,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
     private static void applyTheme(Activity a) {
         if (!Prefs.dark()) return;
         if (!a.getClass().getName().startsWith(PKG + ".")) return;
+        if (Dark.light()) return; // svijetla tema: ostaje originalna (svijetla) osnovna tema aplikacije
         try {
             int id = a.getResources().getIdentifier("Theme.AppCompat", "style", PKG);
             if (id != 0) a.setTheme(id);
@@ -419,6 +420,10 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
             res.setReplacement(PKG, "drawable", "gradient_bg", new XResources.DrawableLoader() {
                 @Override
                 public Drawable newDrawable(XResources r, int id) throws Throwable {
+                    if (Dark.light()) {
+                        return new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                                new int[] { Dark.mix(Dark.BG, Dark.TEXT, 0.05f), Dark.mix(Dark.BG, Dark.TEXT, 0.12f) });
+                    }
                     return new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
                             new int[] { 0xff262626, 0xff1c1c1c });
                 }
@@ -426,6 +431,10 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
             res.setReplacement(PKG, "drawable", "gradient_bg_hover", new XResources.DrawableLoader() {
                 @Override
                 public Drawable newDrawable(XResources r, int id) throws Throwable {
+                    if (Dark.light()) {
+                        return new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                                new int[] { Dark.mix(Dark.BG, Dark.ACCENT, 0.18f), Dark.mix(Dark.BG, Dark.ACCENT, 0.28f) });
+                    }
                     return new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
                             new int[] { 0xff2e3f5e, 0xff243350 });
                 }

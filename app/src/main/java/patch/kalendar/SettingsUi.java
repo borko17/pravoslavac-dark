@@ -353,7 +353,7 @@ final class SettingsUi {
     }
 
     private AlertDialog.Builder builder() {
-        return new AlertDialog.Builder(act, themed()
+        return new AlertDialog.Builder(act, themed() && !Dark.light()
                 ? AlertDialog.THEME_DEVICE_DEFAULT_DARK : AlertDialog.THEME_DEVICE_DEFAULT_LIGHT);
     }
 
@@ -571,6 +571,16 @@ final class SettingsUi {
         });
         root.addView(add);
 
+        Button rnd = new Button(act);
+        rnd.setText("🎲 Насумична тема");
+        rnd.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                randomThemeMenu();
+            }
+        });
+        root.addView(rnd);
+
         Button reset = new Button(act);
         reset.setText("Врати подразумеване теме");
         reset.setOnClickListener(new View.OnClickListener() {
@@ -672,6 +682,37 @@ final class SettingsUi {
         });
     }
 
+    private void randomThemeMenu() {
+        builder()
+                .setTitle("Насумична тема")
+                .setItems(new CharSequence[] { "Светла или тамна", "Светла", "Тамна" },
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface d, int which) {
+                                addRandomTheme(which == 1 ? RandomTheme.LIGHT
+                                        : which == 2 ? RandomTheme.DARK : RandomTheme.ANY);
+                            }
+                        })
+                .show();
+    }
+
+    /** Pravi nasumicnu temu (kontrast je zagarantovan) i odmah je bira. Prethodna, nepreimenovana nasumicna tema se mijenja novom. */
+    private void addRandomTheme(int mode) {
+        RandomTheme.Result res = RandomTheme.generate(new java.util.Random(), mode);
+        Themes.Theme n = new Themes.Theme("t" + System.currentTimeMillis(), res.name);
+        n.colors.putAll(res.colors);
+        for (String[] c : Colors.HIDDEN) {
+            if (!n.colors.containsKey(c[0])) n.colors.put(c[0], Colors.def(c[0]));
+        }
+        Themes.Theme cur = Themes.find(themes, selId);
+        int at = cur.name.startsWith(RandomTheme.NAME_PREFIX + " ·") ? themes.indexOf(cur) : -1;
+        if (at >= 0) themes.set(at, n);
+        else themes.add(n);
+        selId = n.id;
+        saveThemes();
+        build();
+    }
+
     private void renameTheme(final Themes.Theme t) {
         promptText("Преименуј тему", t.name, "Сачувај", new TextCb() {
             @Override
@@ -750,7 +791,7 @@ final class SettingsUi {
                 h.setText(g);
                 h.setTextSize(13f);
                 h.setTypeface(Typeface.DEFAULT_BOLD);
-                h.setTextColor(0xff8ab4f8);
+                h.setTextColor(Dark.light() ? 0xff1a56b0 : 0xff8ab4f8);
                 h.setPadding(0, dp(14), 0, dp(4));
                 rows.addView(h);
             }

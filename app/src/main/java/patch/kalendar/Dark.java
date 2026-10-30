@@ -74,6 +74,19 @@ final class Dark {
         TAB_TEXT = Prefs.color("c_tab_text");
     }
 
+    /** Svijetla tema: pozadina teme je svijetla (tada se originalne svijetle boje ne pretvaraju u tamne). */
+    static boolean light() {
+        return lum(BG) >= 0.5f;
+    }
+
+    /** Mijesa boje a i b (t = udio boje b), alfa = 255. */
+    static int mix(int a, int b, float t) {
+        int r = Math.round(Color_r(a) * (1f - t) + Color_r(b) * t);
+        int g = Math.round(Color_g(a) * (1f - t) + Color_g(b) * t);
+        int bl = Math.round(Color_b(a) * (1f - t) + Color_b(b) * t);
+        return 0xff000000 | (clamp(r) << 16) | (clamp(g) << 8) | clamp(bl);
+    }
+
     private static ColorMatrixColorFilter INVERT;
 
     private static int Color_r(int c) { return (c >> 16) & 255; }
@@ -186,6 +199,7 @@ final class Dark {
         if (a < 20) return c;
         float[] hsl = toHsl(c);
         if (hsl[2] < 0.6f) return c;
+        if (light()) return (a << 24) | (BG & 0xffffff);   // svijetla tema: svijetla pozadina -> pozadina teme
         return fromHsl(hsl[0], hsl[1] * 0.35f, 0.07f + (1f - hsl[2]) * 0.45f, a);
     }
 
@@ -197,6 +211,7 @@ final class Dark {
         if (hsl[1] < 0.2f) return (a << 24) | (TEXT & 0xffffff);
         // tamnocrveni tekst (8B0000, 990000, CC0000...) -> boja "Crveni naslovi"
         if (hsl[1] >= 0.6f && (hsl[0] <= 15f || hsl[0] >= 345f)) return (a << 24) | (TITLE & 0xffffff);
+        if (light()) return c;                                  // svijetla tema: tamni obojeni tekst ostaje
         return fromHsl(hsl[0], Math.min(1f, hsl[1]) * 0.9f, 0.72f, a);
     }
 
@@ -255,7 +270,7 @@ final class Dark {
             v.setBackgroundColor(BG);
             return;
         }
-        d.mutate().setColorFilter(invert());
+        if (!light()) d.mutate().setColorFilter(invert());
     }
 
     private static void fixOne(View v) {
@@ -280,7 +295,7 @@ final class Dark {
         }
         if (v instanceof AbsListView) {
             Drawable sel = ((AbsListView) v).getSelector();
-            if (sel != null && drawableLum(sel) >= 0.6f) {
+            if (sel != null && !light() && drawableLum(sel) >= 0.6f) {
                 sel.mutate().setColorFilter(invert());
             }
             if (v instanceof ListView) {
