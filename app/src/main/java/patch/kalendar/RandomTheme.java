@@ -119,6 +119,14 @@ final class RandomTheme {
         int divider = blendUntil(bg, text, 0.15f, 1.35, bg, surface, row);
         int webLine = blendUntil(webBg, text, 0.28f, 1.8, webBg);
 
+        // linija ispod aktivnog taba: nijansa akcenta, dovoljno svijetla da se vidi na traci tabova
+        float tl = 0.55f;
+        int tabLine = hsl(ht, 0.7f, tl);
+        for (int i = 0; i < 30 && contrast(tabLine, bar) < 3.0; i++) {
+            tl += 0.02f;
+            tabLine = hsl(ht, 0.7f, tl);
+        }
+
         Map<String, String> m = new LinkedHashMap<String, String>();
         put(m, "c_bg", bg);
         put(m, "c_surface", surface);
@@ -132,6 +140,7 @@ final class RandomTheme {
         put(m, "c_web_link", link);
         put(m, "c_web_visited", visited);
         put(m, "c_bar", bar);
+        put(m, "c_tab_line", tabLine);
         put(m, "c_month_bar", month);
         put(m, "c_scroll", scroll);
         put(m, "c_divider", divider);

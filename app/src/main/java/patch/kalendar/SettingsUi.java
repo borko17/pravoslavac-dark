@@ -433,7 +433,7 @@ final class SettingsUi {
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             if (i == tab) {
                 View ind = new View(act);
-                ind.setBackgroundColor(0xff33b5e5);
+                ind.setBackgroundColor(themed() ? Dark.TAB_LINE : 0xff33b5e5);
                 cell.addView(ind, new FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, dp(3), Gravity.BOTTOM));
             }

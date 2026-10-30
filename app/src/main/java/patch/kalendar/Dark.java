@@ -48,6 +48,7 @@ final class Dark {
     static int WEB_LINE = 0xff444444;
     static int MONTH_BAR = 0xff1d1a13;
     static int TAB_TEXT = 0xffffffff;
+    static int TAB_LINE = 0xff33b5e5;
 
     /** Ucitava boje iz postavki (prilagodjena tema) ili podrazumijevane. */
     static void reload() {
@@ -72,6 +73,7 @@ final class Dark {
         WEB_LINE = Prefs.color("c_web_line");
         MONTH_BAR = Prefs.color("c_month_bar");
         TAB_TEXT = Prefs.color("c_tab_text");
+        TAB_LINE = Prefs.color("c_tab_line");
     }
 
     /** Svijetla tema: pozadina teme je svijetla (tada se originalne svijetle boje ne pretvaraju u tamne). */
@@ -273,6 +275,29 @@ final class Dark {
         if (!light()) d.mutate().setColorFilter(invert());
     }
 
+    /** Boja linije ispod aktivnog taba (TabLayout; novije i starije verzije biblioteke). */
+    private static void setTabIndicator(View tabs) {
+        try {
+            tabs.getClass().getMethod("setSelectedTabIndicatorColor", int.class).invoke(tabs, TAB_LINE);
+            return;
+        } catch (Throwable ignored) {
+        }
+        try {
+            // starija biblioteka: indikator crta unutrasnji "strip" (polje mTabStrip)
+            for (Class<?> c = tabs.getClass(); c != null; c = c.getSuperclass()) {
+                try {
+                    java.lang.reflect.Field f = c.getDeclaredField("mTabStrip");
+                    f.setAccessible(true);
+                    Object strip = f.get(tabs);
+                    strip.getClass().getMethod("setSelectedIndicatorColor", int.class).invoke(strip, TAB_LINE);
+                    return;
+                } catch (NoSuchFieldException ignored) {
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
     private static void fixOne(View v) {
         fixBackground(v);
         if (v.getClass().getName().endsWith("TabLayout")) {
@@ -281,6 +306,7 @@ final class Dark {
                         .invoke(v, ColorStateList.valueOf(TAB_TEXT));
             } catch (Throwable ignored) {
             }
+            setTabIndicator(v);
         }
         if (v instanceof TextView) {
             TextView tv = (TextView) v;
