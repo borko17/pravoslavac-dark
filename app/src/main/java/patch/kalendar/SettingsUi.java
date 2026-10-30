@@ -377,14 +377,14 @@ final class SettingsUi {
         root.setBackgroundColor(bg());
 
         if (tab == 0) {
-            root.addView(makeSwitch("Preskoči uvodni ekran", "Aplikacija se otvara bez uvodnog ekrana.",
+            root.addView(makeSwitch("Прескочи уводни екран", "Апликација се отвара без уводног екрана.",
                     Prefs.KEY_SKIP_SPLASH, true));
-            root.addView(makeSwitch("Tekst poravnat lijevo", "Umjesto obostranog poravnanja.",
+            root.addView(makeSwitch("Текст поравнат лево", "Уместо обостраног поравнања.",
                     Prefs.KEY_LEFT, true));
-            root.addView(makeSwitch("Aplikacija otvara kalendar", "Otvara se kalendar umjesto žitija za taj dan.",
+            root.addView(makeSwitch("Апликација отвара календар", "Отвара се календар уместо житија за тај дан.",
                     Prefs.KEY_OPEN_CALENDAR, true));
             root.addView(makeSwitch("Teme",
-                    "Uključeno: tamna tema u bojama odabrane teme. Isključeno: originalne boje aplikacije.",
+                    "Укључено: Тема у одабраним бојама. Искључено: оригинална боја апликације.",
                     Prefs.KEY_DARK, true));
         } else {
             addThemeSection(root);
@@ -419,7 +419,7 @@ final class SettingsUi {
         LinearLayout bar = new LinearLayout(act);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setBackgroundColor(bar());
-        String[] names = { "Opcije", "Teme" };
+        String[] names = { "Опције", "Теме" };
         for (int i = 0; i < names.length; i++) {
             final int idx = i;
             FrameLayout cell = new FrameLayout(act);
@@ -475,7 +475,7 @@ final class SettingsUi {
                         Dark.reload();
                         Hook.reapplyResources();
                     } else {
-                        toast("Isključivanje teme se primjenjuje nakon ponovnog pokretanja aplikacije");
+                        toast("Примењује након поновног покретања апликације.");
                     }
                     host.post(new Runnable() {
                         @Override
@@ -515,7 +515,7 @@ final class SettingsUi {
     }
 
     private void addThemeSection(LinearLayout root) {
-        TextView h = label("Odaberi temu (⋮ = uredi boje, preimenuj, obriši)", 14f, dim());
+        TextView h = label("Одабери тему (⋮ = уреди боје, преименуј, обриши)", 14f, dim());
         h.setPadding(0, dp(8), 0, dp(4));
         root.addView(h);
 
@@ -562,7 +562,7 @@ final class SettingsUi {
         }
 
         Button add = new Button(act);
-        add.setText("+ Nova tema");
+        add.setText("+ Нова тема");
         add.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -572,7 +572,7 @@ final class SettingsUi {
         root.addView(add);
 
         Button reset = new Button(act);
-        reset.setText("Vrati podrazumijevane teme");
+        reset.setText("Врати подразумеване теме");
         reset.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -582,7 +582,7 @@ final class SettingsUi {
         root.addView(reset);
 
         Button imp = new Button(act);
-        imp.setText("Uvezi postavke iz stare aplikacije modula");
+        imp.setText("Увези поставке из старе апликације модула");
         imp.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -599,7 +599,7 @@ final class SettingsUi {
             old.makeWorldReadable();
             String json = old.getString(Themes.KEY_THEMES, null);
             if (json == null) {
-                toast("Nema starih postavki za uvoz");
+                toast("Нема старих поставки за увоз");
                 return;
             }
             SharedPreferences.Editor e = sp.edit();
@@ -617,26 +617,26 @@ final class SettingsUi {
             Hook.reapplyResources();
             dirty = true;
             build();
-            toast("Postavke uvezene");
+            toast("Поставке увезене");
         } catch (Throwable t) {
             XposedBridge.log(t);
-            toast("Uvoz nije uspio");
+            toast("Увоз није успео");
         }
     }
 
     private void confirmResetThemes() {
         builder()
-                .setTitle("Vrati podrazumijevane teme")
-                .setMessage("Sve tvoje teme i izmjene bit će obrisane, a vratit će se ugrađene teme.")
-                .setNegativeButton("Otkaži", null)
-                .setPositiveButton("Vrati", new DialogInterface.OnClickListener() {
+                .setTitle("Врати подразумеване теме")
+                .setMessage("Све твоје теме и измене биће обрисане, а вратиће се уграђене теме.")
+                .setNegativeButton("Откажи", null)
+                .setPositiveButton("Врати", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface d, int which) {
                         sp.edit().remove(Themes.KEY_THEMES).remove(Themes.KEY_SEL).commit();
                         loadThemes();
                         saveThemes();
                         build();
-                        toast("Teme vraćene na podrazumijevane");
+                        toast("Теме враћене на подразумеване");
                     }
                 })
                 .show();
@@ -645,7 +645,7 @@ final class SettingsUi {
     private void showThemeMenu(final Themes.Theme t) {
         builder()
                 .setTitle(t.name)
-                .setItems(new CharSequence[] { "Uredi boje", "Preimenuj", "Obriši" },
+                .setItems(new CharSequence[] { "Уреди боје", "Преименуј", "Обриши" },
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface d, int which) {
@@ -658,7 +658,7 @@ final class SettingsUi {
     }
 
     private void addTheme() {
-        promptText("Nova tema", "Nova tema", "Napravi", new TextCb() {
+        promptText("Назив нове теме:", "", "Направи", new TextCb() {
             @Override
             public void onText(String name) {
                 Themes.Theme src = Themes.find(themes, selId);
@@ -673,7 +673,7 @@ final class SettingsUi {
     }
 
     private void renameTheme(final Themes.Theme t) {
-        promptText("Preimenuj temu", t.name, "Sačuvaj", new TextCb() {
+        promptText("Преименуј тему", t.name, "Сачувај", new TextCb() {
             @Override
             public void onText(String name) {
                 t.name = name;
@@ -685,13 +685,13 @@ final class SettingsUi {
 
     private void deleteTheme(final Themes.Theme t) {
         if (themes.size() <= 1) {
-            toast("Mora ostati bar jedna tema");
+            toast("Мора остати бар једна тема");
             return;
         }
         builder()
-                .setTitle("Obriši temu")
-                .setMessage("Obrisati temu „" + t.name + "“?")
-                .setPositiveButton("Obriši", new DialogInterface.OnClickListener() {
+                .setTitle("Обриши тему")
+                .setMessage("Обрисати тему „" + t.name + "“?")
+                .setPositiveButton("Обриши", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface d, int w) {
                         themes.remove(t);
@@ -700,7 +700,7 @@ final class SettingsUi {
                         build();
                     }
                 })
-                .setNegativeButton("Odustani", null)
+                .setNegativeButton("Одустани", null)
                 .show();
     }
 
@@ -716,10 +716,10 @@ final class SettingsUi {
         s.addView(rows);
 
         final AlertDialog d = builder()
-                .setTitle("Boje: " + t.name)
+                .setTitle("Боје: " + t.name)
                 .setView(s)
-                .setPositiveButton("Gotovo", null)
-                .setNeutralButton("Vrati", null)
+                .setPositiveButton("Готово", null)
+                .setNeutralButton("Врати", null)
                 .create();
         d.show();
         // "Vrati" ne zatvara dijalog
@@ -845,13 +845,13 @@ final class SettingsUi {
                     public void onClick(DialogInterface d, int w) {
                         String s = et.getText().toString().trim();
                         if (s.length() == 0) {
-                            toast("Naziv ne može biti prazan");
+                            toast("Назив не може бити празан");
                             return;
                         }
                         cb.onText(s);
                     }
                 })
-                .setNegativeButton("Odustani", null)
+                .setNegativeButton("Одустани", null)
                 .show();
     }
 

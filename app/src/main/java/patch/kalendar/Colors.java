@@ -6,37 +6,37 @@ final class Colors {
 
     /** {kljuc, naziv, podrazumijevana boja (RRGGBB)}; redoslijed je redoslijed prikaza (po grupama, vidi GROUPS). */
     static final String[][] ALL = {
-            // Pozadine
-            { "c_bg",         "Pozadina kalendara",                 "121212" },
-            { "c_surface",    "Pozadina menija",                    "1a1a18" },
-            { "c_web_bg",     "Pozadina knjiga i žitija",           "121212" },
-            // Kalendar
-            { "c_row",        "Neparni dani",                       "1f1f1d" },
-            { "c_row_border", "Okvir današnjeg dana",               "2f5f99" },
-            // Tekst
-            { "c_text",       "Kalendar i podmeni",                 "e0dcd0" },
-            { "c_title",      "Naslovi, praznici, postovi",         "ff7a66" },
-            { "c_web_text",   "Liste knjiga i molitvi",             "d9d4c7" },
-            { "c_tab_text",   "Slova na tabovima",                  "ffffff" },
-            { "c_web_link",   "Linkovi",                            "8ab4f8" },
-            { "c_web_visited","Posjećeni linkovi",                  "c4a5f0" },
-            // Elementi
-            { "c_bar",        "Tabovi",                             "1f2a3f" },
-            { "c_month_bar",  "Traka mjeseca i godine",             "1d1a13" },
-            { "c_scroll",     "Klizač",                             "8b0000" },
-            // Razdjelnici
-            { "c_divider",    "Kalendar i meni",                    "333333" },
-            { "c_red_bar",    "Ispod datuma u kalendaru",           "8b0000" },
-            { "c_red_line",   "Liste molitvi",                      "dc143c" },
+            // Позадине
+            { "c_bg",         "Позадина календара",                 "121212" },
+            { "c_surface",    "Позадина менија",                    "1a1a18" },
+            { "c_web_bg",     "Позадина књига и житија",           "121212" },
+            // Календар
+            { "c_row",        "Непарни дани",                       "1f1f1d" },
+            { "c_row_border", "Оквир данашњег дана",               "2f5f99" },
+            // Текст
+            { "c_text",       "Календар и подмени",                 "e0dcd0" },
+            { "c_title",      "Наслови, празници, постови",         "ff7a66" },
+            { "c_web_text",   "Листе књига и молитви",             "d9d4c7" },
+            { "c_tab_text",   "Слова на табовима",                  "ffffff" },
+            { "c_web_link",   "Линкови",                            "8ab4f8" },
+            { "c_web_visited","Посећени линкови",                  "c4a5f0" },
+            // Елементи
+            { "c_bar",        "Табови",                             "1f2a3f" },
+            { "c_month_bar",  "Трака месеца и године",             "1d1a13" },
+            { "c_scroll",     "Клизач",                             "8b0000" },
+            // Раздјелници
+            { "c_divider",    "Календар и мени",                    "333333" },
+            { "c_red_bar",    "Испод датума у календару",           "8b0000" },
+            { "c_red_line",   "Листе молитви",                      "dc143c" },
     };
 
     /** {naslov grupe, kljuc prve boje u grupi}: naslov se prikazuje ispred te boje u ALL. */
     static final String[][] GROUPS = {
-            { "Pozadine",     "c_bg" },
-            { "Kalendar",     "c_row" },
-            { "Tekst",        "c_text" },
-            { "Elementi",     "c_bar" },
-            { "Razdjelnici",  "c_divider" },
+            { "Позадине",     "c_bg" },
+            { "Календар",     "c_row" },
+            { "Текст",        "c_text" },
+            { "Елементи",     "c_bar" },
+            { "Разделници",  "c_divider" },
     };
 
     /** Naslov grupe koja pocinje ovom bojom, ili null. */
@@ -47,10 +47,10 @@ final class Colors {
 
     /** Boje koje se ne uređuju u aplikaciji, ali ih tema i dalje ima (ostaju sa vrijednostima iz teme). */
     static final String[][] HIDDEN = {
-            { "c_bar_dark",   "Statusna traka",              "0f1626" },
-            { "c_accent",     "Akcent (prekidači)",          "6495ed" },
-            { "c_web_head2",  "Podnaslovi (h5, h6)",         "e6e1d6" },
-            { "c_web_line",   "Linije i tabele",             "444444" },
+            { "c_bar_dark",   "Статусна трака",              "0f1626" },
+            { "c_accent",     "Акцент (прекидачи)",          "6495ed" },
+            { "c_web_head2",  "Поднаслови (h5, h6)",         "e6e1d6" },
+            { "c_web_line",   "Линије и табеле",             "444444" },
     };
 
     static String def(String key) {
