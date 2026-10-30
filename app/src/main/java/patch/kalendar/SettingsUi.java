@@ -321,14 +321,31 @@ final class SettingsUi {
 
     // ------------------------------------------------------------------ izgled
 
+    /** Teme uključene (boje odabrane teme) ili isključene (originalne boje aplikacije). */
+    private boolean themed() {
+        return sp.getBoolean(Prefs.KEY_DARK, true);
+    }
+
+    private int bg() {
+        return themed() ? Dark.BG : 0xfffaf5e9;
+    }
+
+    private int bar() {
+        return themed() ? Dark.BAR : 0xff2f3e5c;
+    }
+
+    private int tabText() {
+        return themed() ? Dark.TAB_TEXT : 0xffffffff;
+    }
+
     private int text() {
-        return Dark.TEXT;
+        return themed() ? Dark.TEXT : 0xff000000;
     }
 
     /** Sekundarni tekst: boja teksta pomijesana s pozadinom. */
     private int dim() {
-        int t = Dark.TEXT;
-        int b = Dark.BG;
+        int t = text();
+        int b = bg();
         int r = (((t >> 16) & 255) * 65 + ((b >> 16) & 255) * 35) / 100;
         int g = (((t >> 8) & 255) * 65 + ((b >> 8) & 255) * 35) / 100;
         int bl = ((t & 255) * 65 + (b & 255) * 35) / 100;
@@ -336,7 +353,8 @@ final class SettingsUi {
     }
 
     private AlertDialog.Builder builder() {
-        return new AlertDialog.Builder(act, AlertDialog.THEME_DEVICE_DEFAULT_DARK);
+        return new AlertDialog.Builder(act, themed()
+                ? AlertDialog.THEME_DEVICE_DEFAULT_DARK : AlertDialog.THEME_DEVICE_DEFAULT_LIGHT);
     }
 
     private TextView label(String s, float size, int color) {
@@ -356,7 +374,7 @@ final class SettingsUi {
         LinearLayout root = new LinearLayout(act);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(pad, pad, pad, pad);
-        root.setBackgroundColor(Dark.BG);
+        root.setBackgroundColor(bg());
 
         if (tab == 0) {
             root.addView(makeSwitch("Preskoči uvodni ekran", "Aplikacija se otvara bez uvodnog ekrana.",
@@ -373,7 +391,7 @@ final class SettingsUi {
         }
 
         scroll = new ScrollView(act);
-        scroll.setBackgroundColor(Dark.BG);
+        scroll.setBackgroundColor(bg());
         scroll.setFillViewport(true);
         scroll.addView(root);
 
@@ -384,7 +402,7 @@ final class SettingsUi {
         col.addView(scroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        host.setBackgroundColor(Dark.BG);
+        host.setBackgroundColor(bg());
         host.removeAllViews();
         host.addView(col, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -400,7 +418,7 @@ final class SettingsUi {
     private View makeTabs() {
         LinearLayout bar = new LinearLayout(act);
         bar.setOrientation(LinearLayout.HORIZONTAL);
-        bar.setBackgroundColor(Dark.BAR);
+        bar.setBackgroundColor(bar());
         String[] names = { "Opcije", "Teme" };
         for (int i = 0; i < names.length; i++) {
             final int idx = i;
@@ -410,7 +428,7 @@ final class SettingsUi {
             tv.setAllCaps(true);
             tv.setTextSize(14f);
             tv.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-            tv.setTextColor(Dark.TAB_TEXT);
+            tv.setTextColor(tabText());
             tv.setGravity(Gravity.CENTER);
             cell.addView(tv, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -459,6 +477,12 @@ final class SettingsUi {
                     } else {
                         toast("Isključivanje teme se primjenjuje nakon ponovnog pokretanja aplikacije");
                     }
+                    host.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (!closed) build();
+                        }
+                    });
                 } else if (Prefs.KEY_LEFT.equals(key)) {
                     dirty = true;
                 }
