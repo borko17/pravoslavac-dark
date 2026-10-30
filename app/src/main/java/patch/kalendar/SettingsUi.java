@@ -383,7 +383,7 @@ final class SettingsUi {
                     Prefs.KEY_LEFT, true));
             root.addView(makeSwitch("Апликација отвара календар", "Отвара се календар уместо житија за тај дан.",
                     Prefs.KEY_OPEN_CALENDAR, true));
-            root.addView(makeSwitch("Teme",
+            root.addView(makeSwitch("Теме",
                     "Укључено: Тема у одабраним бојама. Искључено: оригинална боја апликације.",
                     Prefs.KEY_DARK, true));
         } else {
