@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
@@ -16,13 +17,18 @@ import android.text.InputFilter;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ExpandableListView;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.ScrollView;
@@ -35,6 +41,7 @@ import java.util.Map;
 
 import de.robv.android.xposed.XSharedPreferences;
 import de.robv.android.xposed.XposedBridge;
+import de.robv.android.xposed.XposedHelpers;
 
 /**
  * Podesavanja modula unutar aplikacije Pravoslavac (Meni -> Опције -> Подешавања).
@@ -45,7 +52,12 @@ final class SettingsUi {
 
     private final Activity act;
     private final SharedPreferences sp;
-    private Dialog dialog;
+    private static SettingsUi current;
+    private Host host;
+    private ViewGroup parent;
+    private View drawerChild;
+    private Object backCb;
+    private boolean closed;
     private ScrollView scroll;
 
     private List<Themes.Theme> themes;
@@ -63,64 +75,205 @@ final class SettingsUi {
 
     static void show(Activity act) {
         try {
-            new SettingsUi(act).open();
+            SettingsUi c = current;
+            if (c != null && !c.closed && c.act == act && c.host != null && c.host.getParent() != null) {
+                return; // vec otvoreno
+            }
+            if (c != null) c.close(false);
+            SettingsUi s = new SettingsUi(act);
+            current = s;
+            s.open();
         } catch (Throwable t) {
             XposedBridge.log(t);
         }
+    }
+
+    /** Zatvara podesavanja ako su otvorena (npr. kad se u meniju izabere druga stavka). */
+    static void dismiss(Activity act) {
+        SettingsUi s = current;
+        if (s != null && !s.closed && s.act == act) s.close(true);
+    }
+
+    /** Back: ako je bocni meni otvoren pusta aplikaciji da ga zatvori, inace zatvara podesavanja. */
+    static boolean onBack(Activity act) {
+        SettingsUi s = current;
+        if (s == null || s.closed || s.act != act) return false;
+        if (s.drawerOpen()) return false;
+        s.close(true);
+        return true;
     }
 
     private void open() {
         loadThemes();
-        dialog = new Dialog(act, android.R.style.Theme_Material_NoActionBar);
+        host = new Host(act);
+        host.setClickable(true);
+        host.setFocusableInTouchMode(true);
         build();
-        placeBelowBar();
-        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
-            @Override
-            public void onDismiss(DialogInterface d) {
-                if (dirty && !darkOff) {
-                    // Primijeni promjene na otvoreni ekran aplikacije.
-                    new Handler(Looper.getMainLooper()).post(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                act.recreate();
-                            } catch (Throwable t) {
-                                XposedBridge.log(t);
-                            }
-                        }
-                    });
-                }
-            }
-        });
-        dialog.show();
+        attach();
     }
 
-
-    // ------------------------------------------------- ispod trake aplikacije
-
-    /** Pomijera prozor podesavanja ispod trake aplikacije ("Pravoslavac"), da traka ostane vidljiva. */
-    private void placeBelowBar() {
+    private void close(boolean apply) {
+        if (closed) return;
+        closed = true;
+        if (current == this) current = null;
+        unregisterBack();
         try {
-            int top = barBottom();
-            if (top <= 0) return;
-            View decor = act.getWindow().getDecorView();
-            int[] dl = new int[2];
-            decor.getLocationOnScreen(dl);
-            int h = dl[1] + decor.getHeight() - top;
-            if (h < dp(120)) return;
-            Window w = dialog.getWindow();
-            w.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN);
-            w.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            w.setGravity(Gravity.TOP | Gravity.START);
-            WindowManager.LayoutParams lp = w.getAttributes();
-            lp.x = 0;
-            lp.y = top;
-            lp.width = WindowManager.LayoutParams.MATCH_PARENT;
-            lp.height = h;
-            w.setAttributes(lp);
+            if (host != null && host.getParent() instanceof ViewGroup) {
+                ((ViewGroup) host.getParent()).removeView(host);
+            }
         } catch (Throwable t) {
             XposedBridge.log(t);
         }
+        if (apply && dirty && !darkOff) {
+            // Primijeni promjene na otvoreni ekran aplikacije.
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        act.recreate();
+                    } catch (Throwable t) {
+                        XposedBridge.log(t);
+                    }
+                }
+            });
+        }
+    }
+
+    /** Prozor podesavanja: hvata Back dok je fokus unutar njega. */
+    private final class Host extends FrameLayout {
+        Host(Context c) {
+            super(c);
+        }
+
+        @Override
+        public boolean dispatchKeyEvent(KeyEvent e) {
+            if (e.getKeyCode() == KeyEvent.KEYCODE_BACK && !closed && !drawerOpen()) {
+                if (e.getAction() == KeyEvent.ACTION_UP) close(true);
+                return true;
+            }
+            return super.dispatchKeyEvent(e);
+        }
+    }
+
+    // ------------------------------------------- unutar prozora aplikacije
+
+    /**
+     * Ubacuje podesavanja u hijerarhiju aplikacije, ispod trake i ISPOD bocnog menija
+     * (u DrawerLayout, ispred ladice), pa meni iz ikone s tri crtice iskace preko njih.
+     */
+    private void attach() {
+        View decor = act.getWindow().getDecorView();
+        ViewGroup p = null;
+        int index = -1;
+        View dl = findByName(decor, "DrawerLayout");
+        if (dl instanceof ViewGroup) {
+            p = (ViewGroup) dl;
+            View lv = null;
+            try {
+                lv = (View) XposedHelpers.getObjectField(act, "H0");
+            } catch (Throwable t) {
+                // probaj trazenje po klasi
+            }
+            if (lv == null) lv = findInstance(decor, ExpandableListView.class);
+            View c = lv;
+            while (c != null && c.getParent() != p) {
+                c = (c.getParent() instanceof View) ? (View) c.getParent() : null;
+            }
+            if (c != null) {
+                drawerChild = c;
+                index = p.indexOfChild(c);
+            }
+        }
+        if (p == null) p = (ViewGroup) act.findViewById(android.R.id.content);
+        if (p == null) throw new IllegalStateException("nema kontejnera");
+        parent = p;
+
+        int top = 0;
+        int bar = barBottom();
+        if (bar > 0) {
+            int[] l = new int[2];
+            p.getLocationOnScreen(l);
+            top = Math.max(0, bar - l[1]);
+        }
+        ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        lp.topMargin = top;
+        if (index >= 0) p.addView(host, index, lp);
+        else p.addView(host, lp);
+        host.requestFocus();
+        registerBack();
+    }
+
+    /** Bocni meni je (djelimicno) vidljiv. */
+    private boolean drawerOpen() {
+        View d = drawerChild;
+        if (d == null || parent == null) return false;
+        return d.getVisibility() == View.VISIBLE && d.getRight() > 0 && d.getLeft() < parent.getWidth();
+    }
+
+    private void registerBack() {
+        if (Build.VERSION.SDK_INT < 33) return;
+        try {
+            backCb = Back33.register(act, this);
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
+    }
+
+    private void unregisterBack() {
+        if (backCb == null) return;
+        try {
+            Back33.unregister(act, backCb);
+        } catch (Throwable t) {
+            // nije kriticno
+        }
+        backCb = null;
+    }
+
+    /** Back gesta (predictive back) na Androidu 13+. */
+    private static final class Back33 {
+        static Object register(final Activity a, final SettingsUi s) {
+            OnBackInvokedCallback cb = new OnBackInvokedCallback() {
+                @Override
+                public void onBackInvoked() {
+                    if (s.drawerOpen()) Hook.closeDrawer(a);
+                    else s.close(true);
+                }
+            };
+            a.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_OVERLAY, cb);
+            return cb;
+        }
+
+        static void unregister(Activity a, Object cb) {
+            a.getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback((OnBackInvokedCallback) cb);
+        }
+    }
+
+    private static View findByName(View v, String simpleName) {
+        for (Class<?> c = v.getClass(); c != null; c = c.getSuperclass()) {
+            if (c.getSimpleName().equals(simpleName)) return v;
+        }
+        if (v instanceof ViewGroup) {
+            ViewGroup g = (ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) {
+                View r = findByName(g.getChildAt(i), simpleName);
+                if (r != null) return r;
+            }
+        }
+        return null;
+    }
+
+    private static View findInstance(View v, Class<?> cls) {
+        if (cls.isInstance(v)) return v;
+        if (v instanceof ViewGroup) {
+            ViewGroup g = (ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) {
+                View r = findInstance(g.getChildAt(i), cls);
+                if (r != null) return r;
+            }
+        }
+        return null;
     }
 
     /** Donja ivica trake aplikacije na ekranu (px) ili -1 ako trake nema. */
@@ -214,13 +367,10 @@ final class SettingsUi {
         scroll.setBackgroundColor(Dark.BG);
         scroll.setFillViewport(true);
         scroll.addView(root);
-        dialog.setContentView(scroll);
-        try {
-            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Dark.BG));
-            dialog.getWindow().setStatusBarColor(Dark.BAR_DARK);
-        } catch (Throwable t) {
-            // nije kriticno
-        }
+        host.setBackgroundColor(Dark.BG);
+        host.removeAllViews();
+        host.addView(scroll, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         scroll.post(new Runnable() {
             @Override
             public void run() {

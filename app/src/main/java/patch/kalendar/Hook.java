@@ -536,6 +536,10 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                                         SettingsUi.show(a);
                                         return true;
                                     }
+                                    if (parent.getExpandableListAdapter().getChildrenCount(groupPosition) == 0
+                                            && parent.getContext() instanceof Activity) {
+                                        SettingsUi.dismiss((Activity) parent.getContext());
+                                    }
                                 } catch (Throwable t) {
                                     XposedBridge.log(t);
                                 }
@@ -544,10 +548,50 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                         };
                     }
                 });
+
+        // Izbor stavke (podstavke) menija zatvara podesavanja.
+        hook("android.widget.ExpandableListView", cl, "setOnChildClickListener",
+                android.widget.ExpandableListView.OnChildClickListener.class, new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        final android.widget.ExpandableListView.OnChildClickListener orig =
+                                (android.widget.ExpandableListView.OnChildClickListener) param.args[0];
+                        if (orig == null) return;
+                        param.args[0] = new android.widget.ExpandableListView.OnChildClickListener() {
+                            @Override
+                            public boolean onChildClick(android.widget.ExpandableListView parent, View v,
+                                                        int groupPosition, int childPosition, long id) {
+                                try {
+                                    if (parent.getContext() instanceof Activity) {
+                                        SettingsUi.dismiss((Activity) parent.getContext());
+                                    }
+                                } catch (Throwable t) {
+                                    XposedBridge.log(t);
+                                }
+                                return orig.onChildClick(parent, v, groupPosition, childPosition, id);
+                            }
+                        };
+                    }
+                });
+
+        // Back zatvara podesavanja (rezervna putanja ako fokus nije u njihovom prozoru).
+        XC_MethodHook back = new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) {
+                try {
+                    if (SettingsUi.onBack((Activity) param.thisObject)) param.setResult(null);
+                } catch (Throwable t) {
+                    XposedBridge.log(t);
+                }
+            }
+        };
+        hook("com.pravoslavac.MainActivity", cl, "onBackPressed", back);
+        hook("androidx.activity.ComponentActivity", cl, "onBackPressed", back);
+        hook("android.app.Activity", cl, "onBackPressed", back);
     }
 
     /** Zatvara bocni meni (DrawerLayout) ako ga ima u hijerarhiji aktivnosti. */
-    private static void closeDrawer(Activity a) {
+    static void closeDrawer(Activity a) {
         try {
             View root = a.getWindow().getDecorView();
             View d = findByClass(root, "DrawerLayout");
