@@ -58,6 +58,9 @@ final class SettingsUi {
     private View drawerChild;
     private Object backCb;
     private boolean closed;
+    /** Odabrani tab: 0 = opcije (prekidaci), 1 = teme. */
+    private int tab;
+    private int builtTab = -1;
     private ScrollView scroll;
 
     private List<Themes.Theme> themes;
@@ -346,7 +349,8 @@ final class SettingsUi {
 
     /** (Ponovo) gradi cijeli ekran; cuva poziciju skrolovanja. */
     private void build() {
-        final int scrollY = scroll != null ? scroll.getScrollY() : 0;
+        final int scrollY = (scroll != null && builtTab == tab) ? scroll.getScrollY() : 0;
+        builtTab = tab;
 
         int pad = dp(16);
         LinearLayout root = new LinearLayout(act);
@@ -354,22 +358,35 @@ final class SettingsUi {
         root.setPadding(pad, pad, pad, pad);
         root.setBackgroundColor(Dark.BG);
 
-        root.addView(makeSwitch("Preskoči uvodni ekran", "Aplikacija se otvara bez uvodnog ekrana.",
-                Prefs.KEY_SKIP_SPLASH, true));
-        root.addView(makeSwitch("Tekst poravnat lijevo", "Umjesto obostranog poravnanja.",
-                Prefs.KEY_LEFT, true));
-        root.addView(makeSwitch("Aplikacija otvara kalendar", "Otvara se kalendar umjesto žitija za taj dan.",
-                Prefs.KEY_OPEN_CALENDAR, true));
-
-        addThemeSection(root);
+        if (tab == 0) {
+            root.addView(makeSwitch("Preskoči uvodni ekran", "Aplikacija se otvara bez uvodnog ekrana.",
+                    Prefs.KEY_SKIP_SPLASH, true));
+            root.addView(makeSwitch("Tekst poravnat lijevo", "Umjesto obostranog poravnanja.",
+                    Prefs.KEY_LEFT, true));
+            root.addView(makeSwitch("Aplikacija otvara kalendar", "Otvara se kalendar umjesto žitija za taj dan.",
+                    Prefs.KEY_OPEN_CALENDAR, true));
+            root.addView(makeSwitch("Teme",
+                    "Uključeno: tamna tema u bojama odabrane teme. Isključeno: originalne boje aplikacije.",
+                    Prefs.KEY_DARK, true));
+        } else {
+            addThemeSection(root);
+        }
 
         scroll = new ScrollView(act);
         scroll.setBackgroundColor(Dark.BG);
         scroll.setFillViewport(true);
         scroll.addView(root);
+
+        LinearLayout col = new LinearLayout(act);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.addView(makeTabs(), new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
+        col.addView(scroll, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
         host.setBackgroundColor(Dark.BG);
         host.removeAllViews();
-        host.addView(scroll, new FrameLayout.LayoutParams(
+        host.addView(col, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         scroll.post(new Runnable() {
             @Override
@@ -377,6 +394,45 @@ final class SettingsUi {
                 scroll.scrollTo(0, scrollY);
             }
         });
+    }
+
+    /** Tabovi izgledaju kao u aplikaciji (kalendar / raspored citanja): traka boje teme, indikator 3dp. */
+    private View makeTabs() {
+        LinearLayout bar = new LinearLayout(act);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setBackgroundColor(Dark.BAR);
+        String[] names = { "Opcije", "Teme" };
+        for (int i = 0; i < names.length; i++) {
+            final int idx = i;
+            FrameLayout cell = new FrameLayout(act);
+            TextView tv = new TextView(act);
+            tv.setText(names[i]);
+            tv.setAllCaps(true);
+            tv.setTextSize(14f);
+            tv.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            tv.setTextColor(Dark.TAB_TEXT);
+            tv.setGravity(Gravity.CENTER);
+            cell.addView(tv, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            if (i == tab) {
+                View ind = new View(act);
+                ind.setBackgroundColor(0xff33b5e5);
+                cell.addView(ind, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, dp(3), Gravity.BOTTOM));
+            }
+            cell.setClickable(true);
+            cell.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (idx != tab) {
+                        tab = idx;
+                        build();
+                    }
+                }
+            });
+            bar.addView(cell, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+        }
+        return bar;
     }
 
     private View makeSwitch(String title, String desc, final String key, boolean def) {
@@ -435,10 +491,6 @@ final class SettingsUi {
     }
 
     private void addThemeSection(LinearLayout root) {
-        root.addView(makeSwitch("Teme",
-                "Uključeno: tamna tema u bojama odabrane teme. Isključeno: originalne boje aplikacije.",
-                Prefs.KEY_DARK, true));
-
         TextView h = label("Odaberi temu (⋮ = uredi boje, preimenuj, obriši)", 14f, dim());
         h.setPadding(0, dp(8), 0, dp(4));
         root.addView(h);
