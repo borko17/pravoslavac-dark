@@ -618,6 +618,8 @@ final class SettingsUi {
         });
     }
 
+    private static final String KEY_LAST_BASE = "last_base_color";
+
     private void randomThemeMenu() {
         builder()
                 .setTitle("Насумична тема")
@@ -627,12 +629,15 @@ final class SettingsUi {
                             public void onClick(DialogInterface d, int which) {
                                 if (which == 2) {
                                     // osnovna boja: svijetla/tamna tema se odredjuje po njenoj svjetlini
-                                    ColorPicker.show(act, Dark.BG, bg(), text(), new ColorPicker.Listener() {
-                                        @Override
-                                        public void onColor(int color) {
-                                            addRandomTheme(RandomTheme.ANY, Integer.valueOf(color));
-                                        }
-                                    });
+                                    // pocetna boja je posljednja koju je korisnik unio (a ne pozadina trenutne teme)
+                                    ColorPicker.show(act, sp.getInt(KEY_LAST_BASE, Dark.BG), bg(), text(),
+                                            new ColorPicker.Listener() {
+                                                @Override
+                                                public void onColor(int color) {
+                                                    sp.edit().putInt(KEY_LAST_BASE, color).commit();
+                                                    addRandomTheme(RandomTheme.ANY, Integer.valueOf(color));
+                                                }
+                                            });
                                 } else {
                                     addRandomTheme(which == 0 ? RandomTheme.LIGHT : RandomTheme.DARK, null);
                                 }

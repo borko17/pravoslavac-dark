@@ -68,9 +68,12 @@ final class RandomTheme {
         float bgS;
         float bgL;
         if (bh != null) {
-            h0 = bh[0];
-            bgS = clamp(bh[1], light ? 0.12f : 0.05f, light ? 0.60f : 0.35f);
-            bgL = clamp(bh[2], light ? 0.93f : 0.03f, light ? 0.975f : 0.12f);
+            // siva (zasicenost ~0) nema nijansu: pozadine ostaju neutralne, a nijansa ostalih boja je slucajna
+            boolean neutral = bh[1] < 0.02f;
+            h0 = neutral ? r.nextFloat() * 360f : bh[0];
+            // donje granice su 0 (prava siva i prava crna/bijela ostaju kakve jesu); gornje cuvaju kontrast
+            bgS = clamp(bh[1], 0f, light ? 0.60f : 0.35f);
+            bgL = clamp(bh[2], light ? 0.93f : 0f, light ? 1f : 0.12f);
             adjusted = Math.abs(bgS - bh[1]) > 0.02f || Math.abs(bgL - bh[2]) > 0.02f;
         } else {
             h0 = r.nextFloat() * 360f;
