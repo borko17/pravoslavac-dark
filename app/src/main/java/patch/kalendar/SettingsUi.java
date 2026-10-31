@@ -527,6 +527,9 @@ final class SettingsUi {
             rb.setText(t.name);
             rb.setTextSize(16f);
             rb.setTextColor(text());
+            // kruzic mora pratiti boje teme uzivo (inace ostaje u bojama teme prozora iz trenutka otvaranja)
+            rb.setButtonTintList(new android.content.res.ColorStateList(
+                    new int[][] { { android.R.attr.state_checked }, {} }, new int[] { text(), dim() }));
             rb.setChecked(t.id.equals(selId));
             rb.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -620,7 +623,7 @@ final class SettingsUi {
                             public void onClick(DialogInterface d, int which) {
                                 if (which == 2) {
                                     // osnovna boja: svijetla/tamna tema se odredjuje po njenoj svjetlini
-                                    ColorPicker.show(act, Dark.BG, new ColorPicker.Listener() {
+                                    ColorPicker.show(act, Dark.BG, bg(), text(), new ColorPicker.Listener() {
                                         @Override
                                         public void onColor(int color) {
                                             addRandomTheme(RandomTheme.ANY, Integer.valueOf(color));
@@ -704,7 +707,17 @@ final class SettingsUi {
                 .setPositiveButton("Готово", null)
                 .setNeutralButton("Врати", null)
                 .create();
+        // pozadina editora boja je c_bg, a slova su c_text (naslov i dugmad se boje izricito)
+        android.graphics.drawable.GradientDrawable dbg = new android.graphics.drawable.GradientDrawable();
+        dbg.setColor(0xff000000 | bg());
+        dbg.setCornerRadius(dp(6));
+        d.getWindow().setBackgroundDrawable(dbg);
         d.show();
+        int tid = act.getResources().getIdentifier("alertTitle", "id", "android");
+        View title = tid != 0 ? d.findViewById(tid) : null;
+        if (title instanceof TextView) ((TextView) title).setTextColor(text());
+        d.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(text());
+        d.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(text());
         // "Vrati" ne zatvara dijalog
         d.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -750,6 +763,7 @@ final class SettingsUi {
         TextView tv = new TextView(act);
         tv.setText(label);
         tv.setTextSize(15f);
+        tv.setTextColor(text());
         row.addView(tv, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
         final View swatch = new View(act);
@@ -763,6 +777,8 @@ final class SettingsUi {
         et.setFilters(new InputFilter[] { new InputFilter.LengthFilter(7) });
         et.setTypeface(Typeface.MONOSPACE);
         et.setTextSize(15f);
+        et.setTextColor(text());
+        et.setBackgroundTintList(android.content.res.ColorStateList.valueOf(dim()));
         String cur = t.color(key);
         et.setText("#" + cur);
         setSwatch(swatch, Colors.parse(cur).intValue(), 1);
@@ -790,7 +806,7 @@ final class SettingsUi {
             public void onClick(View v) {
                 Integer cur = Colors.parse(et.getText().toString());
                 int start = cur != null ? cur.intValue() : Colors.parse(t.color(key)).intValue();
-                ColorPicker.show(act, start, new ColorPicker.Listener() {
+                ColorPicker.show(act, start, bg(), text(), new ColorPicker.Listener() {
                     @Override
                     public void onColor(int color) {
                         et.setText("#" + Colors.hex(color));
@@ -812,6 +828,8 @@ final class SettingsUi {
         final EditText et = new EditText(act);
         et.setSingleLine(true);
         et.setFilters(new InputFilter[] { new InputFilter.LengthFilter(30) });
+        et.setTextColor(text());
+        et.setBackgroundTintList(android.content.res.ColorStateList.valueOf(dim()));
         et.setText(initial);
         et.setSelection(et.getText().length());
 

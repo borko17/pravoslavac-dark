@@ -35,14 +35,18 @@ final class ColorPicker {
         void onColor(int color);
     }
 
-    /** Pozadina dijaloga. */
-    private static final int DIALOG_BG = 0xff303030;
-
     /** Sredina i debljina prstena (u djelovima poluprecnika): nijansa, zasicenost, svjetlina. */
     private static final float[] RING_R = { 0.885f, 0.67f, 0.46f };
     private static final float[] RING_W = { 0.17f, 0.17f, 0.15f };
 
-    static void show(final Context ctx, int initial, final Listener listener) {
+    /** Pozadina i boja teksta dijaloga su boje teme (c_bg i c_text). */
+    static void show(Context ctx, int initial, Listener listener) {
+        show(ctx, initial, Dark.BG, Dark.TEXT, listener);
+    }
+
+    /** bg = pozadina dijaloga (c_bg), fg = boja slova dugmadi i obrisa (c_text). */
+    static void show(final Context ctx, int initial, final int bgColor, final int fgColor,
+                     final Listener listener) {
         final float[] hsv = new float[3];
         Color.colorToHSV(initial, hsv);
         final int startColor = 0xff000000 | initial;
@@ -55,7 +59,7 @@ final class ColorPicker {
         final EditText hex = new EditText(ctx);
         final GradientDrawable disc = new GradientDrawable();
         disc.setShape(GradientDrawable.OVAL);
-        disc.setStroke(dp(ctx, 2), 0x66ffffff);
+        disc.setStroke(dp(ctx, 2), 0x66000000 | (fgColor & 0xffffff));
         final View newSwatch = new View(ctx);
 
         hex.setSingleLine(true);
@@ -155,12 +159,16 @@ final class ColorPicker {
                 .create();
         // tastatura se ne otvara sama; kad se otvori, dijalog se smanji umjesto da prekrije birac
         GradientDrawable bg = new GradientDrawable();
-        bg.setColor(DIALOG_BG);
+        bg.setColor(0xff000000 | bgColor);
         bg.setCornerRadius(dp(ctx, 6));
         dlg.getWindow().setBackgroundDrawable(bg);
         dlg.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN
                 | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         dlg.show();
+        // boja slova dugmadi se zadaje izricito, da bude citljiva na svijetloj i tamnoj pozadini
+        int btn = 0xff000000 | fgColor;
+        dlg.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(btn);
+        dlg.getButton(DialogInterface.BUTTON_NEGATIVE).setTextColor(btn);
     }
 
     private static int dp(Context ctx, int v) {
