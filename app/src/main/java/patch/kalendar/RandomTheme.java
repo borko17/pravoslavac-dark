@@ -118,6 +118,9 @@ final class RandomTheme {
         int title = fit(ht, as, light ? 0.32f : 0.70f, dir, MIN_TITLE, surfaces);
         int link = fit(hl, as, light ? 0.32f : 0.72f, dir, MIN_LINK, webBg, surface);
         int visited = fit(hv, as * 0.8f, light ? 0.34f : 0.74f, dir, MIN_VISITED, webBg, surface);
+        // ozname verzija (СРПСКИ, ЦРКВЕНОСЛОВЕНСКИ…) su u knjigama zelene: nijansa ostaje oko zelene
+        float hm = 120f + (r.nextFloat() - 0.5f) * 40f;
+        int mark = fit(hm, as, light ? 0.30f : 0.72f, dir, MIN_LINK, webBg, surface);
 
         // ---- akcenti i linije
         int accent = fit(hl, as, light ? 0.40f : 0.62f, dir, MIN_ACCENT, bg, surface, row);
@@ -179,6 +182,7 @@ final class RandomTheme {
         put(m, "c_tab_text", tabText);
         put(m, "c_web_link", link);
         put(m, "c_web_visited", visited);
+        put(m, "c_web_mark", mark);
         put(m, "c_bar", bar);
         put(m, "c_tab_line", tabLine);
         put(m, "c_month_bar", month);

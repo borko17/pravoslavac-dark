@@ -34,6 +34,13 @@ final class Themes {
             if (c != null) return Colors.hex(c.intValue());
             if ("c_web_bg".equals(key)) return color("c_bg");   // starije teme: pozadina knjiga = opsta pozadina
             if ("c_scroll".equals(key)) return color("c_red_bar");  // starije teme: klizač = boja crvenih linija
+            if ("c_web_mark".equals(key)) {
+                // starije teme: svijetle zadrzavaju originalnu zelenu, tamne dobijaju svijetlozelenu
+                Integer b = Colors.parse(color("c_web_bg"));
+                double lum = b == null ? 0 : (0.299 * ((b.intValue() >> 16) & 255)
+                        + 0.587 * ((b.intValue() >> 8) & 255) + 0.114 * (b.intValue() & 255)) / 255.0;
+                return lum >= 0.5 ? "008000" : "77f877";
+            }
             return Colors.def(key);
         }
 

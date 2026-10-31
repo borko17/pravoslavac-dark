@@ -45,6 +45,7 @@ final class Dark {
     static int WEB_HEAD2 = 0xffe6e1d6;
     static int WEB_LINK = 0xff8ab4f8;
     static int WEB_VISITED = 0xffc4a5f0;
+    static int WEB_MARK = 0xff77f877;
     static int WEB_LINE = 0xff444444;
     static int MONTH_BAR = 0xff1d1a13;
     static int TAB_TEXT = 0xffffffff;
@@ -70,6 +71,7 @@ final class Dark {
         WEB_HEAD2 = Prefs.color("c_web_head2");
         WEB_LINK = Prefs.color("c_web_link");
         WEB_VISITED = Prefs.color("c_web_visited");
+        WEB_MARK = Prefs.color("c_web_mark");
         WEB_LINE = Prefs.color("c_web_line");
         MONTH_BAR = Prefs.color("c_month_bar");
         TAB_TEXT = Prefs.color("c_tab_text");

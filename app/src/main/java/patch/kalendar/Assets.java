@@ -26,7 +26,7 @@ final class Assets {
 
     static String darkJs() {
         String css = darkCss().replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n");
-        return DARK_JS.replace("@TEXT@", hex(Dark.WEB_TEXT)).replace("@TITLE@", hex(Dark.TITLE))
+        return DARK_JS.replace("@TEXT@", hex(Dark.WEB_TEXT)).replace("@TITLE@", hex(Dark.TITLE)).replace("@MARK@", hex(Dark.WEB_MARK))
                 .replace("@BG@", hex(Dark.WEB_BG)).replace("@LIGHT@", Dark.light() ? "true" : "false")
                 .replace("@CSS@", css);
     }
@@ -48,6 +48,7 @@ final class Assets {
                     + "    var x=toHsl(c.r,c.g,c.b);\n"
                     + "    if(x[1]<0.2)return'@TEXT@';\n"
                     + "    if(x[1]>=0.6&&(x[0]<=15||x[0]>=345))return'@TITLE@';\n"
+                    + "    if(x[1]>=0.2&&x[0]>=75&&x[0]<=165)return'@MARK@';\n"
                     + "    if(LIGHT)return null;\n"
                     + "    return hsl(x[0],Math.min(1,x[1])*0.9,0.72);\n"
                     + "  }\n"
@@ -87,7 +88,9 @@ final class Assets {
                     + "  }catch(x){}\n"
                     + "})();\n";
 
-    static final String LEFT_CSS = "*{text-align:left !important;}\n";
+    /** Lijevo poravnanje za elemente sa inline stilom / atributom (stilovi iz .css fajlova se prepisuju u Hook-u). */
+    static final String LEFT_CSS =
+            "[align=\"justify\"],[style*=\"justify\"],#just{text-align:left !important}\n";
 
     static final String JUSTIFY_JS =
             "(function(){var a=document.getElementsByTagName('*');for(var i=0;i<a.length;i++){var e=a[i];if(window.getComputedStyle(e).textAlign==='justify'){e.style.setProperty('text-align','left','important');}}})();";

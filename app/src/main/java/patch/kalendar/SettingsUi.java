@@ -568,6 +568,7 @@ final class SettingsUi {
         }
 
         Button add = new Button(act);
+        styleButton(add);
         add.setText("+ Нова тема");
         add.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -578,6 +579,7 @@ final class SettingsUi {
         root.addView(add);
 
         Button rnd = new Button(act);
+        styleButton(rnd);
         rnd.setText("🎲 Насумична тема");
         rnd.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -586,6 +588,22 @@ final class SettingsUi {
             }
         });
         root.addView(rnd);
+    }
+
+    /** Boje dugmeta se zadaju izricito iz teme (inace ostaju u bojama teme prozora iz trenutka otvaranja). */
+    private void styleButton(Button b) {
+        GradientDrawable normal = new GradientDrawable();
+        normal.setColor(Dark.mix(bg(), text(), 0.14f));
+        normal.setCornerRadius(dp(4));
+        GradientDrawable pressed = new GradientDrawable();
+        pressed.setColor(Dark.mix(bg(), text(), 0.26f));
+        pressed.setCornerRadius(dp(4));
+        android.graphics.drawable.StateListDrawable states = new android.graphics.drawable.StateListDrawable();
+        states.addState(new int[] { android.R.attr.state_pressed }, pressed);
+        states.addState(new int[0], normal);
+        b.setBackground(states);
+        b.setTextColor(text());
+        b.setStateListAnimator(null);
     }
 
     private void showThemeMenu(final Themes.Theme t) {
