@@ -49,7 +49,6 @@ final class ColorPicker {
                      final Listener listener) {
         final float[] hsv = new float[3];
         Color.colorToHSV(initial, hsv);
-        final int startColor = 0xff000000 | initial;
 
         int widthPx = ctx.getResources().getDisplayMetrics().widthPixels;
         final int size = Math.min(dp(ctx, 330), widthPx - dp(ctx, 72));
@@ -60,7 +59,6 @@ final class ColorPicker {
         final GradientDrawable disc = new GradientDrawable();
         disc.setShape(GradientDrawable.OVAL);
         disc.setStroke(dp(ctx, 2), 0x66000000 | (fgColor & 0xffffff));
-        final View newSwatch = new View(ctx);
 
         hex.setSingleLine(true);
         hex.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
@@ -71,7 +69,7 @@ final class ColorPicker {
         hex.setPadding(0, 0, 0, 0);
         hex.setBackground(disc);
 
-        /** Boja kruga u centru, boja slova i nova boja na traci (bez diranja teksta u polju). */
+        /** Boja kruga u centru i boja slova u njemu (bez diranja teksta u polju). */
         final Runnable refresh = new Runnable() {
             @Override
             public void run() {
@@ -79,7 +77,6 @@ final class ColorPicker {
                 disc.setColor(c);
                 double lum = (0.299 * Color.red(c) + 0.587 * Color.green(c) + 0.114 * Color.blue(c)) / 255.0;
                 hex.setTextColor(lum > 0.55 ? 0xff000000 : 0xffffffff);
-                newSwatch.setBackgroundColor(c);
             }
         };
 
@@ -104,23 +101,12 @@ final class ColorPicker {
         int disk = (int) (0.68f * radius);
         wheel.addView(hex, new FrameLayout.LayoutParams(disk, disk, Gravity.CENTER));
 
-        // traka: lijevo pocetna, desno nova boja
-        LinearLayout compare = new LinearLayout(ctx);
-        compare.setOrientation(LinearLayout.HORIZONTAL);
-        View oldSwatch = new View(ctx);
-        oldSwatch.setBackgroundColor(startColor);
-        compare.addView(oldSwatch, new LinearLayout.LayoutParams(0, dp(ctx, 26), 1f));
-        compare.addView(newSwatch, new LinearLayout.LayoutParams(0, dp(ctx, 26), 1f));
-
         int pad = dp(ctx, 16);
         LinearLayout root = new LinearLayout(ctx);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.setPadding(pad, pad, pad, 0);
+        root.setPadding(pad, pad, pad, dp(ctx, 8));
         root.addView(wheel, new LinearLayout.LayoutParams(size, size));
-        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(size, LinearLayout.LayoutParams.WRAP_CONTENT);
-        clp.topMargin = dp(ctx, 12);
-        root.addView(compare, clp);
 
         ScrollView scroll = new ScrollView(ctx);
         scroll.addView(root);
@@ -155,7 +141,7 @@ final class ColorPicker {
                         listener.onColor(typed != null ? (0xff000000 | typed.intValue()) : Color.HSVToColor(hsv));
                     }
                 })
-                .setNegativeButton("Odustani", null)
+                .setNeutralButton("Odustani", null)
                 .create();
         // tastatura se ne otvara sama; kad se otvori, dijalog se smanji umjesto da prekrije birac
         GradientDrawable bg = new GradientDrawable();
@@ -168,7 +154,7 @@ final class ColorPicker {
         // boja slova dugmadi se zadaje izricito, da bude citljiva na svijetloj i tamnoj pozadini
         int btn = 0xff000000 | fgColor;
         dlg.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(btn);
-        dlg.getButton(DialogInterface.BUTTON_NEGATIVE).setTextColor(btn);
+        dlg.getButton(DialogInterface.BUTTON_NEUTRAL).setTextColor(btn);
     }
 
     private static int dp(Context ctx, int v) {
@@ -181,6 +167,8 @@ final class ColorPicker {
         private final Runnable changed;
         private final Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint mark = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint capRing = new Paint(Paint.ANTI_ALIAS_FLAG); // luk sa zaobljenim krajevima na savu
+        private final RectF capOval = new RectF();
         private final RectF oval = new RectF();
         private final Matrix rot = new Matrix();
         private int active = -1; // prsten koji se trenutno vuce (zakljucan od dodira do podizanja prsta)
@@ -189,6 +177,8 @@ final class ColorPicker {
             super(ctx);
             this.hsv = hsv;
             this.changed = changed;
+            capRing.setStyle(Paint.Style.STROKE);
+            capRing.setStrokeCap(Paint.Cap.ROUND);
             ring.setStyle(Paint.Style.STROKE);
             mark.setStyle(Paint.Style.STROKE);
         }
@@ -232,6 +222,8 @@ final class ColorPicker {
             ring.setStrokeWidth(RING_W[1] * R);
             setOval(cx, cy, RING_R[1] * R);
             c.drawOval(oval, ring);
+            // sav na vrhu: zaobljen je kraj one polovine prstena na kojoj je trenutna vrijednost
+            seamStroke(c, cx, cy, RING_R[1] * R, RING_W[1] * R, hsv[1] < 0.5f, sc);
 
             // 2: svjetlina (v = t*t, pa tamni dio zauzima veci dio luka)
             int[] vc = new int[9];
@@ -243,6 +235,7 @@ final class ColorPicker {
             ring.setStrokeWidth(RING_W[2] * R);
             setOval(cx, cy, RING_R[2] * R);
             c.drawOval(oval, ring);
+            seamStroke(c, cx, cy, RING_R[2] * R, RING_W[2] * R, (float) Math.sqrt(hsv[2]) < 0.5f, vc);
             ring.setShader(null);
 
             // oznake
@@ -258,6 +251,52 @@ final class ColorPicker {
                 mark.setColor(Color.WHITE);
                 c.drawCircle(mx, my, mr, mark);
             }
+        }
+
+        /** Boja gradijenta trake (cols su ravnomjerno raspodijeljeni od 0 do 1) u tacki t. */
+        private static int gradAt(int[] cols, float t) {
+            int n = cols.length;
+            float p = Math.max(0f, Math.min(1f, t)) * (n - 1);
+            int i = (int) p;
+            if (i >= n - 1) return cols[n - 1];
+            float f = p - i;
+            int a = cols[i];
+            int b = cols[i + 1];
+            int r = Math.round(Color.red(a) + (Color.red(b) - Color.red(a)) * f);
+            int g = Math.round(Color.green(a) + (Color.green(b) - Color.green(a)) * f);
+            int bl = Math.round(Color.blue(a) + (Color.blue(b) - Color.blue(a)) * f);
+            return Color.rgb(r, g, bl);
+        }
+
+        /**
+         * Zaobljen kraj trake na savu: kratak luk sa okruglim krajevima, nacrtan preko prstena. Iste je boje kao
+         * traka na svom dijelu (pa se ne vidi), a ono sto strsi preko susjednog kraja ima boju svog kraja i
+         * zaobljen je oblik trake. startCap = zaobljen je pocetak trake (preklapa kraj), inace je zaobljen kraj
+         * trake (preklapa pocetak). Uglovi su "razmotani": 0 = pocetak trake, 360 = kraj trake.
+         */
+        private void seamStroke(Canvas c, float cx, float cy, float rr, float w, boolean startCap, int[] cols) {
+            float phi = (float) Math.toDegrees((w / 2f) / rr); // ugao koji zauzima zaobljenje
+            float len = 2f * phi;                              // duzina dodanog luka
+            float from = startCap ? 0f : 360f - len;           // luk ide od "from" do "from + len"
+            float u0 = from - phi - 2f;                        // prozor boja koji pokriva i okrugle krajeve
+            float u1 = from + len + phi + 2f;
+            int m = 24;
+            int[] cc = new int[m + 1];
+            float[] pp = new float[m + 1];
+            for (int j = 0; j <= m; j++) {
+                float u = u0 + (u1 - u0) * j / m;
+                // izvan [0, 360] boja ostaje boja kraja trake (nastavak trake preko susjednog kraja)
+                cc[j] = gradAt(cols, u / 360f);
+                pp[j] = (u1 - u0) * j / m / 360f;
+            }
+            SweepGradient g = new SweepGradient(cx, cy, cc, pp);
+            rot.setRotate(u0 - 90f, cx, cy);
+            g.setLocalMatrix(rot);
+            capRing.setShader(g);
+            capRing.setStrokeWidth(w);
+            capOval.set(cx - rr, cy - rr, cx + rr, cy + rr);
+            c.drawArc(capOval, from - 90f, len, false, capRing);
+            capRing.setShader(null);
         }
 
         private float markAngle(int i) {
