@@ -230,6 +230,32 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         }
     }
 
+    /**
+     * Prikazuje WebView tek kad je iscrtano stanje stranice poslije JS-a (tema, poravnanje). Bez toga se
+     * na jedan frejm pokaze stari (svijetli) sadrzaj koji je ostao iscrtan dok je WebView bio skriven.
+     */
+    static void revealAfterDraw(final WebView wv) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 23) {
+                wv.postVisualStateCallback(System.nanoTime(), new WebView.VisualStateCallback() {
+                    @Override
+                    public void onComplete(long requestId) {
+                        showWebView(wv);
+                    }
+                });
+                return;
+            }
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
+        wv.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                showWebView(wv);
+            }
+        }, 80);
+    }
+
     static void showWebView(WebView wv) {
         try {
             wv.setAlpha(1f);
@@ -331,7 +357,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                 final android.webkit.ValueCallback<String> reveal = new android.webkit.ValueCallback<String>() {
                     @Override
                     public void onReceiveValue(String v) {
-                        showWebView(wv);
+                        revealAfterDraw(wv);
                     }
                 };
                 if (Prefs.left()) wv.evaluateJavascript(Assets.JUSTIFY_JS, null);
