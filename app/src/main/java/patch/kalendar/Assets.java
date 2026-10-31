@@ -87,6 +87,8 @@ final class Assets {
                     + "  }catch(x){}\n"
                     + "})();\n";
 
+    static final String LEFT_CSS = "*{text-align:left !important;}\n";
+
     static final String JUSTIFY_JS =
             "(function(){var a=document.getElementsByTagName('*');for(var i=0;i<a.length;i++){var e=a[i];if(window.getComputedStyle(e).textAlign==='justify'){e.style.setProperty('text-align','left','important');}}})();";
 }

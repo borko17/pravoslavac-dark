@@ -468,13 +468,17 @@ final class SettingsUi {
                 sp.edit().putBoolean(key, checked).commit();
                 Prefs.refresh();
                 if (Prefs.KEY_DARK.equals(key)) {
-                    darkOff = !checked;
                     dirty = true;
                     if (checked) {
+                        darkOff = false;
                         Dark.reload();
                         Hook.reapplyResources();
                     } else {
-                        toast("Поново покрени апликацију.");
+                        // vrati originalne boje resursa; ekran se ponovo pravi kad se podesavanja zatvore
+                        boolean ok = Hook.restoreResources(act);
+                        darkOff = !ok;
+                        toast(ok ? "Тема је искључена. Затвори подешавања да се примени."
+                                : "Поново покрени апликацију.");
                     }
                     host.post(new Runnable() {
                         @Override
