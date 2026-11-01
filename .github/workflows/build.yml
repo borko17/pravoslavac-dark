@@ -56,7 +56,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Pravoslavac_Patch
+          name: Pravoslavac_Dark
           path: dist/${{ env.APK_NAME }}
 
       - name: Dodaj APK u GitHub Release (za tagove v*)
