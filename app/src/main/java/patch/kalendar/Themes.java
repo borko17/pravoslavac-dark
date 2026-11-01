@@ -55,9 +55,9 @@ final class Themes {
 
     /** Redoslijed vrijednosti u ugrađenim temama ispod (ne mijenjati bez izmjene tih nizova). */
     private static final String[] ORDER = {
-            "c_bg", "c_surface", "c_bar", "c_bar_dark", "c_text", "c_accent", "c_divider", "c_red_line", "c_row",
-            "c_row_border", "c_title", "c_red_bar", "c_web_text", "c_web_head2", "c_web_link", "c_web_visited",
-            "c_web_line" };
+            "c_bg", "c_surface", "c_web_bg", "c_row", "c_row_border", "c_text", "c_title", "c_web_mark", "c_web_text",
+            "c_tab_text", "c_web_link", "c_web_visited", "c_bar", "c_month_bar", "c_scroll", "c_tab_line",
+            "c_red_bar", "c_divider", "c_red_line" };
 
     private static Theme make(String id, String name, String... hex) {
         Theme t = new Theme(id, name);
@@ -67,15 +67,9 @@ final class Themes {
 
     static List<Theme> builtins() {
         List<Theme> l = new ArrayList<Theme>();
-        l.add(make("orig", "Tamna (originalna)",
-                "121212", "1a1a18", "1f2a3f", "0f1626", "e0dcd0", "6495ed", "333333", "dc143c", "1f1f1d", "2f5f99",
-                "ff7a66", "8b0000", "d9d4c7", "e6e1d6", "8ab4f8", "c4a5f0", "444444"));
-        l.add(make("amoled", "AMOLED crna",
-                "000000", "050505", "0d1522", "000000", "e6e6e6", "6495ed", "222222", "b3243a", "0b0b0b", "1f4a7a",
-                "ff7a66", "7a0f1a", "d2d2d2", "eeeeee", "8ab4f8", "c4a5f0", "333333"));
-        l.add(make("sepia", "Topla sepija",
-                "1c1712", "241e17", "4a3520", "2e2012", "e8dcc4", "d9a441", "3a3128", "b5533c", "2a231b", "8a6a2f",
-                "ff8a65", "7a2e1f", "e0d4bc", "f0e6d0", "e0b060", "c9a0dc", "4a4033"));
+        l.add(make("orig", "Tamna",
+                "121212", "181818", "121212", "1b1c1e", "7546e1", "e1e6ea", "f07a7d", "97f07f", "cfd7de", "ffffff",
+                "9194f2", "e293e7", "1f2538", "1d1f23", "b02e31", "dd3c3f", "b02e31", "353637", "e93f43"));
         return l;
     }
 
