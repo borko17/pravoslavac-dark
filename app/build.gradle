@@ -21,7 +21,7 @@ android {
         targetSdk 37
         // versionCode: cijeli broj, povecaj za 1 pri SVAKOM novom izdanju. versionName: tekst koji se prikazuje (i ulazi u ime APK-a).
         versionCode 15
-        versionName '2.26.1103'
+        versionName '2.26.1104'
     }
 
     signingConfigs {
