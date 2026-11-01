@@ -13,7 +13,7 @@
             android:value="true" />
         <meta-data
             android:name="xposeddescription"
-            android:value="Pravoslavac: teme (tamna tema s prilagodljivim bojama), preskakanje uvodnog ekrana, lijevo poravnanje (podesivo)" />
+            android:value="Pravoslavac: dodatne opcije i teme." />
         <meta-data
             android:name="xposedminversion"
             android:value="93" />
