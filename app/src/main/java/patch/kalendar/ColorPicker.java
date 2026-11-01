@@ -173,6 +173,9 @@ final class ColorPicker {
         private final RectF capOval = new RectF();
         private final RectF oval = new RectF();
         private final Matrix rot = new Matrix();
+        /** Koji je kraj trake svjetline odozgo: true = pocetak (lijevo), false = kraj (desno). Mijenja se tek kad klizac izadje iz preklopa. */
+        private boolean vStartTop = true;
+        private boolean vInit = false; // prvo crtanje: kraj odozgo odredjuje pocetna vrijednost
         private int active = -1; // prsten koji se trenutno vuce (zakljucan od dodira do podizanja prsta)
 
         Rings(Context ctx, float[] hsv, Runnable changed) {
@@ -227,6 +230,13 @@ final class ColorPicker {
             // sav na vrhu: zaobljen je kraj one polovine prstena na kojoj je trenutna vrijednost
             seamStroke(c, cx, cy, RING_R[1] * R, RING_W[1] * R, hsv[1] < 0.5f, sc, 0f);
 
+            // preklop svjetline: kraj odozgo se mijenja tek kad klizac izadje iz zone preklopa (sa strane),
+            // ili na dnu prstena; unutar preklopa (oko vrha) ostaje kakav je bio
+            float tv = (float) Math.sqrt(hsv[2]);
+            if (!vInit) { vStartTop = tv < 0.5f; vInit = true; }
+            if (tv >= 0.25f && tv < 0.5f) vStartTop = true;
+            else if (tv >= 0.5f && tv <= 0.75f) vStartTop = false;
+
             // 2: svjetlina (v = t*t, pa tamni dio zauzima veci dio luka)
             int[] vc = new int[9];
             for (int i = 0; i < 9; i++) {
@@ -237,7 +247,7 @@ final class ColorPicker {
             ring.setStrokeWidth(RING_W[2] * R);
             setOval(cx, cy, RING_R[2] * R);
             c.drawOval(oval, ring);
-            seamStroke(c, cx, cy, RING_R[2] * R, RING_W[2] * R, (float) Math.sqrt(hsv[2]) < 0.5f, vc, SEAM_OVERLAP_V);
+            seamStroke(c, cx, cy, RING_R[2] * R, RING_W[2] * R, vStartTop, vc, SEAM_OVERLAP_V);
             ring.setShader(null);
 
             // oznake
@@ -279,10 +289,9 @@ final class ColorPicker {
         private void seamStroke(Canvas c, float cx, float cy, float rr, float w, boolean startCap, int[] cols,
                                 float overlap) {
             float phi = (float) Math.toDegrees((w / 2f) / rr); // ugao koji zauzima zaobljenje
-            float h = Math.max(phi, overlap);                  // koliko traka zalazi preko susjednog kraja
-            // luk ide od "a" do "b"; okrugli krajevi sirom zahvataju jos phi sa svake strane
-            float a = startCap ? phi - h : 360f - 2f * phi;
-            float b = startCap ? 2f * phi : 360f + h - phi;
+            // luk ide od "a" do "b"; sredista okruglih krajeva su tacno na "a" i "b" (preklop = 90 -> tacno lijevo/desno)
+            float a = startCap ? (overlap > 0f ? -overlap : 0f) : 360f - 2f * phi;
+            float b = startCap ? 2f * phi : (overlap > 0f ? 360f + overlap : 360f);
             float u0 = a - phi - 2f;                           // prozor boja koji pokriva i okrugle krajeve
             float u1 = b + phi + 2f;
             int m = 24;
