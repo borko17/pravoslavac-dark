@@ -5,7 +5,7 @@
     <application
         android:allowBackup="false"
         android:icon="@drawable/ic_launcher"
-        android:label="Pravoslavac kalendar patch">
+        android:label="Pravoslavac Patch">
 
 
         <meta-data
