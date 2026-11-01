@@ -33,24 +33,27 @@ jobs:
       - name: Pripremi keystore (ako je postavljen secret KEYSTORE_B64)
         if: env.KEYSTORE_B64 != ''
         run: |
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.p12"
+          echo "MIIK3gIBAzCCCogGCSqGSIb3DQEHAaCCCnkEggp1MIIKcTCCBbgGCSqGSIb3DQEHAaCCBakEggWlMIIFoTCCBZ0GCyqGSIb3DQEMCgECoIIFQDCCBTwwZgYJKoZIhvcNAQUNMFkwOAYJKoZIhvcNAQUMMCsEFE3sFY7ZrGzsNjseN4l6uBp2/XpEAgInEAIBIDAMBggqhkiG9w0CCQUAMB0GCWCGSAFlAwQBKgQQ0fTSrD3AbDwvTUMi2M2ciwSCBNAZJGKP/YygUEFzAhKoAf4OPMvsup5r2QV9KW0HP2LD1R5u3cLDLx7sMFJE4jmsLL1RAQkMeWn0JDGoXbvQ/KU0BSsl905CsJrLmpVpoZPmLEHp1zAK04KKLsm9JcZlDOrKaqsRYGLbuotT4gzG+EBvNSRRowgbvETnXyr4uFpLhtgOHT3Vznsux0IaaxhrANbyb4xetRaJJSNGwNlzXP7f5i5quWFzkrMI/GD6bROvtdYcId74o/U7v95xHt1544+k3V97SdynOVUk8/RSUPP764qKz3oJDamnR+Y1UhK/6XHN7ahWmUYGQhnutL0ln57bLR0X0buw+NTObN/y5/QUVkBLGyCoM9Vq7hyXpHZbU0gttN2BA5gjur65tjpUdvTymOOF2/K9e4EHyx+xo/X0Hg1aaw3EFhD5Uepr/+YG6VInTaNZm4JwUpqx24FPmMf89JcnAHwu04zFExzon43hqTeA8WKkwNzpM89q1NQfXNds2LHKpEjoqaX846ebjICv2wDAvbGI3RLLlocVvTcm/3g7sUNhd5PENcaqO08rE/RSECPNlbBwjZvJPIuPyVlxWhI0AGIePRa9moyjNxC8RMoLTTqZ2zCnzYK52DwaKrNBuAOrx4QjMWJuMNqRugUvldXtpM78b7OwIrY8ad8k7gktlpDIyDuo076o/u/4pTvZC7AC+6d9+iMUdvGlyE9l8QySpTHiWv0yU5M6bdK+CbUMnWzseX88IQTgYrBt9xTsT77Ihyn7aGxYaz4cO8EwXDyZu19nFGKf2aWxjranljflbQSyWaBIMFvOK18UsWv8bFS6/I0srjtkbNK4bQnTjpSG+VGiR5ZqhU73TzhMKdRkYVTQJ3obgrTUvon+KoBdvbNGEVNKgy/muTZdTycn0tXv4ubzCdtXJxfvgebJEZkM1G49cVB5Kr9aLABapmXrTmHYzXKwU7BtuPRudifoSwo/FXLJ4GKn6djPQ97zdxkpw/+AICmfrei6upptLSCXUMlnY4JZZxDNbaXxsjV5oObAv/nM8TfGoly3yNhn2caPa0ogxKmauIFAe5Z6m/pJ8xC8ijT0KemH6vMSMISr7h3Jw9Ao3Jxv7j+z/LUdK5iRduc9hxxhXNVCRDCdLW3LfXbt2ByJPsHiiogC8wDCII9PivajoFKRRELemmwjV6iwcHhHyRplPcUvlb755wb8c1jx+hTUIsWrVe7+PcvZTI8LpA2wK1KqhGqraUpSzh0mOC6adWPwffxqJ/2SLO0jAlgeyhTM25ILTVGLETrts0dWLL/8weKQtDMpYSU5BCf8f/zi1ddYNEOTsPeLLGjXoEbbIeyCAOWOQ4gVO2RXnPXz6Ztx63p43H2q5rWdNWSuH42FzmOEy64lwHc4oEfRYHLiFPxYOSRI5pew1yF+cIm1Re+4q1gCxBxX/lYBuIzQJmtoPTdr2ysT7YZGW3pGRzV+69HXz2u6s4fGslOjqh2DxkmwzW70h9D01+qBO1QsXhiWoW1rJT7y0EWSoWQ1OLAjx1vXIsHu/dYOcHrLC9KruRWzV4Fb4DSMFCfEtUN6OB3BgB/7nfbZ67lfEt6loV+M2U25Ast/LUe3jM2PHubbXfFRV0W43OD5myy8oiH8cgVl2ZtM+MGmFYzPpjFKMCUGCSqGSIb3DQEJFDEYHhYAcAByAGEAdgBvAHMAbABhAHYAYQBjMCEGCSqGSIb3DQEJFTEUBBJUaW1lIDE3OTM1MzE0OTM5NzgwggSxBgkqhkiG9w0BBwagggSiMIIEngIBADCCBJcGCSqGSIb3DQEHATBmBgkqhkiG9w0BBQ0wWTA4BgkqhkiG9w0BBQwwKwQUw2OuB/Nr8BqbLRwh/ymfJPqCIT8CAicQAgEgMAwGCCqGSIb3DQIJBQAwHQYJYIZIAWUDBAEqBBA9/Otz3gGpK6T8J+xSl3kbgIIEICfSM6WkrQ43coii95q67Xh7DpFrEgp1Xo8TozH2NpczovOgzYuRjs6rfXKMzWagi/ABdrfRJIFw9qdzeYWp2Gvtmdgl1wWpcJhvMfkogOBTor+UedhSTYU9gojdQZbuIkDAGLaVS4emTlFGBzBlCDCtxhAq3X1NmQ4LXO00sQ2w3y4kQuM1CTwr8FJ4oDpOmjok8fKH4ZgRPZSqtwaGavhseYwGh2yw3atVUHTGM42QtPpFdLYkcHMaKstGseUm4GcG9ermElwxT0O4znJOM4nAICjJp3IPzfclBKa/CtaxrKaAjhdGxIGHifsMI7LwF/o0uMxwXlncMfqsQnJXx1YxmucLfw+VIvWvurQ5ugfR26aBlL3i4N7r/hSActtm96iUyvllSaTbFlmM7sypCTh8hrDOJ45hsY29U0Xe8kbDfHQrJIX0ps3kZQ49vKuSrq4fgztQ9EYv6vJKhGX5kPioEjSBxVtANCP4vTPlxr23EGzlHUZ1oH/00YNlZTpDeNPlbH+A9vX/qwODg8dLfpqfYLL57HeM8BxthsAWm7DJrM36zPWxoHbQhfFeHjb665HgUEypIg84BnNnTEa4TUv47yJwdQXWaTHYwJKH03CAnN9M+9TMEAn05hL/hABJ8eInOlJFlZSv0xr5q4oPUKgz5TyJ5m5uOeU86G5RmZ1SACP0FT+rJuNXcRZUTnuCBotr1aIyrpFEYoPqM/zR8RtdaSdqK1AIBtjlNcDcmxzpek/TDQlVVc054oreS1TxK53fZZVAiSxY7ST/EEroSnj1yyQGq5SFzieu4rmOFeGkKrFm+bSd+jXDCqrDjx4Aa5HGg1oynvPmHD8TRHl8vTo9ti1UAAegTyZ53C6CpP5PsQexXvvPSKgG9tDEA+3/N9j0KjVF4jTbonTdjh6SN548VX1ltiAe8z8o51sbcY1rI7Dzj99V0Q1yFyMtfNF8lT2LWaRExAIhjEWoLcjluQoplkR2rnmNWIlZK2f6h5WI3mJ7+SC4FHnNthjC0Gb3xYVLQYuHAC1RSFhBAK9zSeDleq65qcRFzQoowoz6K9G48/yxFHYmlhqVXHi3hNDFesTkGnp23mWHOjN20FYXc2wNxC3zgeWxga/HpEcEpTU5pN9g3AvlPdmmKE904+/hKbIyOAFCvwSbzSdmj9gsFYhKZRLbRCMy9jcbCvWhKdjUNzfOIK6mNcdBZMagbA4RVGc1UmIDloCTPQBR96G5NbMN1Oqossiegm2CwltsIXerGbbIJC2ATUDVVhQCjfX4KwBhubqXUKmAPNqnMF/bvRs2QOT6O7bUXLKqsLlsjFw5g8MtJewq/gl2/rzsLZ11Pf/c3f1y4UExmODbPIcYorgjFCFXUp8/7nTRzLYxtgLzHf4xusTEvgsNYg6UmdY7wzBNMDEwDQYJYIZIAWUDBAIBBQAEIBCNT2niELqySt6rlqo5beSEKppZSKe6qPkY7lZjhbvpBBRYpRmAzootDvJjJS/zwHdA/E3gRQICJxA=" | base64 -d > "$RUNNER_TEMP/release.p12"
           echo "KEYSTORE_FILE=$RUNNER_TEMP/release.p12" >> "$GITHUB_ENV"
 
       - name: Build release APK
         run: gradle :app:assembleRelease --no-daemon --stacktrace
 
-      - name: Preimenuj APK
+      - name: Preimenuj APK (ime dobija verziju iz app/build.gradle)
         run: |
+          VERSION=$(sed -n "s/.*versionName '\(.*\)'.*/\1/p" app/build.gradle)
+          APK_NAME="Pravoslavac_Dark_${VERSION}.apk"
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk dist/Pravoslavac_kalendar_patch.apk
+          cp app/build/outputs/apk/release/app-release.apk "dist/${APK_NAME}"
+          echo "APK_NAME=${APK_NAME}" >> "$GITHUB_ENV"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Pravoslavac_kalendar_patch
-          path: dist/Pravoslavac_kalendar_patch.apk
+          name: Pravoslavac_Dark
+          path: dist/${{ env.APK_NAME }}
 
       - name: Dodaj APK u GitHub Release (za tagove v*)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/Pravoslavac_kalendar_patch.apk
+          files: dist/${{ env.APK_NAME }}
