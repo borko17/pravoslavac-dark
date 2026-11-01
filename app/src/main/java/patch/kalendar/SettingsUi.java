@@ -61,6 +61,8 @@ final class SettingsUi {
     private int tab;
     private int builtTab = -1;
     private ScrollView scroll;
+    /** Kompaktni podmeni (preko ekrana podesavanja) ili null. */
+    private View menuOverlay;
 
     private List<Themes.Theme> themes;
     private String selId;
@@ -101,6 +103,7 @@ final class SettingsUi {
         SettingsUi s = current;
         if (s == null || s.closed || s.act != act) return false;
         if (s.drawerOpen()) return false;
+        if (s.closeMenu()) return true;
         s.close(true);
         return true;
     }
@@ -150,7 +153,7 @@ final class SettingsUi {
         @Override
         public boolean dispatchKeyEvent(KeyEvent e) {
             if (e.getKeyCode() == KeyEvent.KEYCODE_BACK && !closed && !drawerOpen()) {
-                if (e.getAction() == KeyEvent.ACTION_UP) close(true);
+                if (e.getAction() == KeyEvent.ACTION_UP && !closeMenu()) close(true);
                 return true;
             }
             return super.dispatchKeyEvent(e);
@@ -239,7 +242,7 @@ final class SettingsUi {
                 @Override
                 public void onBackInvoked() {
                     if (s.drawerOpen()) Hook.closeDrawer(a);
-                    else s.close(true);
+                    else if (!s.closeMenu()) s.close(true);
                 }
             };
             a.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
@@ -368,6 +371,7 @@ final class SettingsUi {
     private void build() {
         final int scrollY = (scroll != null && builtTab == tab) ? scroll.getScrollY() : 0;
         builtTab = tab;
+        menuOverlay = null;
 
         int pad = dp(16);
         LinearLayout root = new LinearLayout(act);
@@ -567,31 +571,56 @@ final class SettingsUi {
             root.addView(row);
         }
 
-        Button add = new Button(act);
-        styleButton(add);
-        add.setText("+ Нова тема");
-        add.setOnClickListener(new View.OnClickListener() {
+        LinearLayout bar = new LinearLayout(act);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER);
+        bar.addView(iconButton(Icons.PLUS, "Нова тема", new Runnable() {
             @Override
-            public void onClick(View v) {
+            public void run() {
                 addTheme();
             }
-        });
-        root.addView(add);
-
-        Button rnd = new Button(act);
-        styleButton(rnd);
-        rnd.setText("🎲 Насумична тема");
-        rnd.setOnClickListener(new View.OnClickListener() {
+        }), btnLp());
+        bar.addView(iconButton(Icons.DICE_NEW, "Нова насумична тема", new Runnable() {
             @Override
-            public void onClick(View v) {
+            public void run() {
                 randomThemeMenu();
             }
-        });
-        root.addView(rnd);
+        }), btnLp());
+        bar.addView(iconButton(Icons.REFRESH, "Поново генериши насумичну тему (без нове теме)", new Runnable() {
+            @Override
+            public void run() {
+                regenerateRandomTheme();
+            }
+        }), btnLp());
+        root.addView(bar, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
-    /** Boje dugmeta se zadaju izricito iz teme (inace ostaju u bojama teme prozora iz trenutka otvaranja). */
-    private void styleButton(Button b) {
+    private LinearLayout.LayoutParams btnLp() {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(56), dp(48));
+        lp.setMargins(dp(6), dp(12), dp(6), 0);
+        return lp;
+    }
+
+    private View iconButton(int kind, String desc, final Runnable action) {
+        android.widget.ImageView v = new android.widget.ImageView(act);
+        v.setImageDrawable(new Icons(kind, text()));
+        v.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+        v.setPadding(dp(12), dp(10), dp(12), dp(10));
+        v.setBackground(buttonBg());
+        v.setContentDescription(desc);
+        if (Build.VERSION.SDK_INT >= 26) v.setTooltipText(desc);
+        v.setClickable(true);
+        v.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View x) {
+                action.run();
+            }
+        });
+        return v;
+    }
+
+    private android.graphics.drawable.StateListDrawable buttonBg() {
         GradientDrawable normal = new GradientDrawable();
         normal.setColor(Dark.mix(bg(), text(), 0.14f));
         normal.setCornerRadius(dp(4));
@@ -601,24 +630,119 @@ final class SettingsUi {
         android.graphics.drawable.StateListDrawable states = new android.graphics.drawable.StateListDrawable();
         states.addState(new int[] { android.R.attr.state_pressed }, pressed);
         states.addState(new int[0], normal);
-        b.setBackground(states);
+        return states;
+    }
+
+    /** Boje dugmeta se zadaju izricito iz teme (inace ostaju u bojama teme prozora iz trenutka otvaranja). */
+    private void styleButton(Button b) {
+        b.setBackground(buttonBg());
         b.setTextColor(text());
         b.setStateListAnimator(null);
     }
 
     private void showThemeMenu(final Themes.Theme t) {
-        builder()
-                .setTitle(t.name)
-                .setItems(new CharSequence[] { "Уреди боје", "Преименуј", "Обриши" },
-                        new DialogInterface.OnClickListener() {
+        showMenu(t.name,
+                new int[] { Icons.PALETTE, Icons.PENCIL, Icons.TRASH },
+                new String[] { "Уреди боје", "Преименуј", "Обриши" },
+                new Runnable[] {
+                        new Runnable() {
                             @Override
-                            public void onClick(DialogInterface d, int which) {
-                                if (which == 0) editColors(t);
-                                else if (which == 1) renameTheme(t);
-                                else deleteTheme(t);
+                            public void run() {
+                                editColors(t);
                             }
-                        })
-                .show();
+                        },
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                renameTheme(t);
+                            }
+                        },
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                deleteTheme(t);
+                            }
+                        } });
+    }
+
+    /** Mali podmeni centriran na ekranu, sirine prema tekstu; svaka stavka ima ikonicu ispred teksta. */
+    private void showMenu(String title, int[] icons, String[] labels, final Runnable[] actions) {
+        closeMenu();
+        FrameLayout scrim = new FrameLayout(act);
+        scrim.setBackgroundColor(0x66000000);
+        scrim.setClickable(true);
+        scrim.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                closeMenu();
+            }
+        });
+
+        LinearLayout card = new LinearLayout(act);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(0, dp(8), 0, dp(8));
+        GradientDrawable cbg = new GradientDrawable();
+        cbg.setColor(0xff000000 | bg());
+        cbg.setCornerRadius(dp(8));
+        cbg.setStroke(dp(1), Dark.mix(bg(), text(), 0.25f));
+        card.setBackground(cbg);
+        card.setElevation(dp(8));
+        card.setClickable(true); // dodir na kartici ne zatvara meni
+
+        TextView tt = label(title, 16f, text());
+        tt.setTypeface(Typeface.DEFAULT_BOLD);
+        tt.setSingleLine(true);
+        tt.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        tt.setMaxWidth(dp(240));
+        tt.setPadding(dp(20), dp(8), dp(20), dp(10));
+        card.addView(tt);
+
+        for (int i = 0; i < labels.length; i++) {
+            final Runnable action = actions[i];
+            LinearLayout row = new LinearLayout(act);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(20), dp(12), dp(24), dp(12));
+            GradientDrawable pr = new GradientDrawable();
+            pr.setColor(Dark.mix(bg(), text(), 0.18f));
+            android.graphics.drawable.StateListDrawable st = new android.graphics.drawable.StateListDrawable();
+            st.addState(new int[] { android.R.attr.state_pressed }, pr);
+            st.addState(new int[0], new ColorDrawable(0));
+            row.setBackground(st);
+
+            android.widget.ImageView iv = new android.widget.ImageView(act);
+            iv.setImageDrawable(new Icons(icons[i], text()));
+            LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(dp(24), dp(24));
+            ilp.rightMargin = dp(16);
+            row.addView(iv, ilp);
+            row.addView(label(labels[i], 16f, text()));
+
+            row.setClickable(true);
+            row.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    closeMenu();
+                    action.run();
+                }
+            });
+            card.addView(row, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+
+        scrim.addView(card, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+        menuOverlay = scrim;
+        host.addView(scrim, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    /** Zatvara kompaktni podmeni; vraca true ako je bio otvoren. */
+    private boolean closeMenu() {
+        View m = menuOverlay;
+        if (m == null) return false;
+        menuOverlay = null;
+        if (m.getParent() instanceof ViewGroup) ((ViewGroup) m.getParent()).removeView(m);
+        return true;
     }
 
     private void addTheme() {
@@ -664,25 +788,57 @@ final class SettingsUi {
                 .show();
     }
 
-    /** Pravi nasumicnu temu (kontrast je zagarantovan) i odmah je bira. Prethodna, nepreimenovana nasumicna tema se mijenja novom. */
+    /** Pravi NOVU nasumicnu temu (kontrast je zagarantovan) i odmah je bira. Postojece teme se ne diraju. */
     private void addRandomTheme(int mode, Integer base) {
         RandomTheme.Result res = RandomTheme.generate(new java.util.Random(), mode, base);
         if (base != null && res.adjusted) toast("Боја је прилагођена ради читљивости");
-        Themes.Theme n = new Themes.Theme("t" + System.currentTimeMillis(), res.name);
-        n.colors.putAll(res.colors);
-        for (String[] c : Colors.HIDDEN) {
-            if (!n.colors.containsKey(c[0])) n.colors.put(c[0], Colors.def(c[0]));
-        }
+        Themes.Theme n = themeFrom(res);
+        themes.add(n);
+        selId = n.id;
+        saveThemes();
+        build();
+    }
+
+    /**
+     * Ponovo generise izabranu (nasumicnu ili "iz boje") temu na istom mjestu, bez pravljenja nove.
+     * Svijetla/tamna i osnovna boja uzimaju se iz naziva teme; preimenovane teme se ne diraju.
+     */
+    private void regenerateRandomTheme() {
         Themes.Theme cur = Themes.find(themes, selId);
-        // posljednja generisana (nasumicna ili iz zadate boje) tema koja nije preimenovana se mijenja novom
-        boolean generated = cur.name.startsWith(RandomTheme.NAME_PREFIX + " ·")
-                || cur.name.startsWith(RandomTheme.FROM_COLOR_PREFIX + " ·");
-        int at = generated ? themes.indexOf(cur) : -1;
+        boolean fromColor = cur.name.startsWith(RandomTheme.FROM_COLOR_PREFIX + " ·");
+        boolean random = cur.name.startsWith(RandomTheme.NAME_PREFIX + " ·");
+        if (!fromColor && !random) {
+            toast("Изабрана тема није насумична");
+            return;
+        }
+        int mode = cur.name.endsWith("светла") ? RandomTheme.LIGHT
+                : (cur.name.endsWith("тамна") ? RandomTheme.DARK : RandomTheme.ANY);
+        Integer base = null;
+        if (fromColor) {
+            int h = cur.name.indexOf('#');
+            if (h >= 0) {
+                int e = cur.name.indexOf(' ', h);
+                base = Colors.parse(cur.name.substring(h + 1, e < 0 ? cur.name.length() : e));
+            }
+            if (base == null) base = Integer.valueOf(sp.getInt(KEY_LAST_BASE, Dark.BG));
+        }
+        RandomTheme.Result res = RandomTheme.generate(new java.util.Random(), mode, base);
+        Themes.Theme n = themeFrom(res);
+        int at = themes.indexOf(cur);
         if (at >= 0) themes.set(at, n);
         else themes.add(n);
         selId = n.id;
         saveThemes();
         build();
+    }
+
+    private Themes.Theme themeFrom(RandomTheme.Result res) {
+        Themes.Theme n = new Themes.Theme("t" + System.currentTimeMillis(), res.name);
+        n.colors.putAll(res.colors);
+        for (String[] c : Colors.HIDDEN) {
+            if (!n.colors.containsKey(c[0])) n.colors.put(c[0], Colors.def(c[0]));
+        }
+        return n;
     }
 
     private void renameTheme(final Themes.Theme t) {
