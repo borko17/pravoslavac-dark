@@ -46,7 +46,7 @@ jobs:
       - name: Preimenuj APK (ime dobija verziju iz app/build.gradle)
         run: |
           VERSION=$(sed -n "s/.*versionName '\(.*\)'.*/\1/p" app/build.gradle)
-          APK_NAME="Pravoslavac_Patch_${VERSION}.apk"
+          APK_NAME="Pravoslavac_Dark_${VERSION}.apk"
           mkdir -p dist
           cp app/build/outputs/apk/release/app-release.apk "dist/${APK_NAME}"
           echo "APK_NAME=${APK_NAME}" >> "$GITHUB_ENV"
