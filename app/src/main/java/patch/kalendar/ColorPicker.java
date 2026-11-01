@@ -36,8 +36,8 @@ final class ColorPicker {
     }
 
     /** Sredina i debljina prstena (u djelovima poluprecnika): nijansa, zasicenost, svjetlina. */
-    private static final float[] RING_R = { 0.885f, 0.67f, 0.46f };
-    private static final float[] RING_W = { 0.17f, 0.17f, 0.15f };
+    private static final float[] RING_R = { 0.895f, 0.665f, 0.435f };
+    private static final float[] RING_W = { 0.19f, 0.19f, 0.19f };
 
     /** Pozadina i boja teksta dijaloga su boje teme (c_bg i c_text). */
     static void show(Context ctx, int initial, Listener listener) {
@@ -98,7 +98,7 @@ final class ColorPicker {
 
         FrameLayout wheel = new FrameLayout(ctx);
         wheel.addView(rings, new FrameLayout.LayoutParams(size, size));
-        int disk = (int) (0.68f * radius);
+        int disk = (int) (0.60f * radius);
         wheel.addView(hex, new FrameLayout.LayoutParams(disk, disk, Gravity.CENTER));
 
         int pad = dp(ctx, 16);
@@ -315,8 +315,8 @@ final class ColorPicker {
             float r = (float) Math.hypot(dx, dy) / R;
             switch (e.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
-                    if (r < 0.36f || r > 1.08f) return false;
-                    active = r > 0.78f ? 0 : (r > 0.56f ? 1 : 2);
+                    if (r < 0.32f || r > 1.08f) return false;
+                    active = r > 0.78f ? 0 : (r > 0.55f ? 1 : 2);
                     getParent().requestDisallowInterceptTouchEvent(true);
                     apply(dx, dy);
                     return true;
