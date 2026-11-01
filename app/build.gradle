@@ -15,13 +15,13 @@ android {
 
     defaultConfig {
         // Ime paketa kako ga vidi telefon (LSPosed, instalacija). Java paket i 'namespace' ispod ostaju isti.
-        applicationId 'com.pravoslavac.patch'
+        applicationId 'com.pravoslavac.dark'
         minSdk 21
         //noinspection TargetSdkVersion
         targetSdk 37
         // versionCode: cijeli broj, povecaj za 1 pri SVAKOM novom izdanju. versionName: tekst koji se prikazuje (i ulazi u ime APK-a).
         versionCode 15
-        versionName '2.26.1106'
+        versionName '2.26.1107'
     }
 
     signingConfigs {
