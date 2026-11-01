@@ -14,21 +14,23 @@ android {
 
 
     defaultConfig {
-        applicationId 'patch.kalendar'
+        // Ime paketa kako ga vidi telefon (LSPosed, instalacija). Java paket i 'namespace' ispod ostaju isti.
+        applicationId 'com.pravoslavac.patch'
         minSdk 21
         //noinspection TargetSdkVersion
         targetSdk 37
-        versionCode 13
-        versionName '2.0.2-dark'
+        // versionCode: cijeli broj, povecaj za 1 pri SVAKOM novom izdanju. versionName: tekst koji se prikazuje (i ulazi u ime APK-a).
+        versionCode 14
+        versionName '2.26.1101'
     }
 
     signingConfigs {
         if (ksFile) {
             release {
                 storeFile file(ksFile)
-                storePassword System.getenv('KEYSTORE_PASSWORD')
-                keyAlias System.getenv('KEY_ALIAS')
-                keyPassword System.getenv('KEY_PASSWORD')
+                storePassword System.getenv('borko.pravoslavac')
+                keyAlias System.getenv('pravoslavac')
+                keyPassword System.getenv('borko.pravoslavac')
                 enableV1Signing true
                 enableV2Signing true
             }
