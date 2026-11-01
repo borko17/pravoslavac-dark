@@ -37,6 +37,8 @@ final class ColorPicker {
 
     /** Sredina i debljina prstena (u djelovima poluprecnika): nijansa, zasicenost, svjetlina. */
     private static final float[] RING_R = { 0.895f, 0.665f, 0.435f };
+    /** Preklapanje kraja trake svjetline (stepeni sa svake strane vrha): 90 = jedan kraj lijevo, drugi desno. */
+    private static final float SEAM_OVERLAP_V = 90f;
     private static final float[] RING_W = { 0.19f, 0.19f, 0.19f };
 
     /** Pozadina i boja teksta dijaloga su boje teme (c_bg i c_text). */
@@ -223,7 +225,7 @@ final class ColorPicker {
             setOval(cx, cy, RING_R[1] * R);
             c.drawOval(oval, ring);
             // sav na vrhu: zaobljen je kraj one polovine prstena na kojoj je trenutna vrijednost
-            seamStroke(c, cx, cy, RING_R[1] * R, RING_W[1] * R, hsv[1] < 0.5f, sc);
+            seamStroke(c, cx, cy, RING_R[1] * R, RING_W[1] * R, hsv[1] < 0.5f, sc, 0f);
 
             // 2: svjetlina (v = t*t, pa tamni dio zauzima veci dio luka)
             int[] vc = new int[9];
@@ -235,7 +237,7 @@ final class ColorPicker {
             ring.setStrokeWidth(RING_W[2] * R);
             setOval(cx, cy, RING_R[2] * R);
             c.drawOval(oval, ring);
-            seamStroke(c, cx, cy, RING_R[2] * R, RING_W[2] * R, (float) Math.sqrt(hsv[2]) < 0.5f, vc);
+            seamStroke(c, cx, cy, RING_R[2] * R, RING_W[2] * R, (float) Math.sqrt(hsv[2]) < 0.5f, vc, SEAM_OVERLAP_V);
             ring.setShader(null);
 
             // oznake
@@ -274,12 +276,15 @@ final class ColorPicker {
          * zaobljen je oblik trake. startCap = zaobljen je pocetak trake (preklapa kraj), inace je zaobljen kraj
          * trake (preklapa pocetak). Uglovi su "razmotani": 0 = pocetak trake, 360 = kraj trake.
          */
-        private void seamStroke(Canvas c, float cx, float cy, float rr, float w, boolean startCap, int[] cols) {
+        private void seamStroke(Canvas c, float cx, float cy, float rr, float w, boolean startCap, int[] cols,
+                                float overlap) {
             float phi = (float) Math.toDegrees((w / 2f) / rr); // ugao koji zauzima zaobljenje
-            float len = 2f * phi;                              // duzina dodanog luka
-            float from = startCap ? 0f : 360f - len;           // luk ide od "from" do "from + len"
-            float u0 = from - phi - 2f;                        // prozor boja koji pokriva i okrugle krajeve
-            float u1 = from + len + phi + 2f;
+            float h = Math.max(phi, overlap);                  // koliko traka zalazi preko susjednog kraja
+            // luk ide od "a" do "b"; okrugli krajevi sirom zahvataju jos phi sa svake strane
+            float a = startCap ? phi - h : 360f - 2f * phi;
+            float b = startCap ? 2f * phi : 360f + h - phi;
+            float u0 = a - phi - 2f;                           // prozor boja koji pokriva i okrugle krajeve
+            float u1 = b + phi + 2f;
             int m = 24;
             int[] cc = new int[m + 1];
             float[] pp = new float[m + 1];
@@ -295,7 +300,7 @@ final class ColorPicker {
             capRing.setShader(g);
             capRing.setStrokeWidth(w);
             capOval.set(cx - rr, cy - rr, cx + rr, cy + rr);
-            c.drawArc(capOval, from - 90f, len, false, capRing);
+            c.drawArc(capOval, a - 90f, b - a, false, capRing);
             capRing.setShader(null);
         }
 
