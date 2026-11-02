@@ -15,11 +15,6 @@ final class RandomTheme {
     static final int LIGHT = 1;
     static final int DARK = 2;
 
-    /** Prefiks naziva tema koje je napravio generator (takve se zamjenjuju novim nasumicnim, ako nisu preimenovane). */
-    static final String NAME_PREFIX = "Насумична";
-    /** Prefiks naziva tema napravljenih iz zadate osnovne boje (isto pravilo zamjene kao za nasumicne). */
-    static final String FROM_COLOR_PREFIX = "Из боје";
-
     static final class Result {
         final boolean light;
         final String name;
@@ -220,10 +215,8 @@ final class RandomTheme {
         put(m, "c_web_head2", head2);
         put(m, "c_web_line", webLine);
 
-        String tag = Integer.toHexString(0x1000 + r.nextInt(0xfff)).substring(1);
-        String name = (bh != null ? FROM_COLOR_PREFIX + " · #" + Colors.hex(bg)
-                + (holidayColor != null ? " + #" + Colors.hex(title) : "") : NAME_PREFIX + " · " + tag)
-                + " · " + (light ? "светла" : "тамна");
+        int gender = base == null ? NameGen.MASC : (holidayColor == null ? NameGen.FEM : NameGen.NEUT);
+        String name = NameGen.make(gender, r);
         return new Result(light, name, m, adjusted, adjustedHoliday);
     }
 

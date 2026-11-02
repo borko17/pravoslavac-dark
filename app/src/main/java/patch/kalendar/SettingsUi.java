@@ -834,10 +834,9 @@ final class SettingsUi {
                 });
     }
 
-    /** Tema koju je napravio generator (nasumicna ili iz zadate boje) i nije preimenovana. */
+    /** Tema koju je napravio generator i nije preimenovana (naziv "НТ: pridjev imenica"). */
     private boolean isGeneratedTheme(Themes.Theme t) {
-        return t.name.startsWith(RandomTheme.NAME_PREFIX + " ·")
-                || t.name.startsWith(RandomTheme.FROM_COLOR_PREFIX + " ·");
+        return NameGen.parse(t.name) >= 0;
     }
 
     /**
@@ -851,12 +850,18 @@ final class SettingsUi {
             else if (res.adjusted) toast("Боја позадине је прилагођена ради читљивости");
             else if (res.adjustedHoliday) toast("Боја празника је прилагођена ради читљивости");
         }
-        Themes.Theme n = new Themes.Theme("t" + System.currentTimeMillis(), res.name);
+        Themes.Theme cur = Themes.find(themes, selId);
+        int gender = base == null ? NameGen.MASC : (holidayColor == null ? NameGen.FEM : NameGen.NEUT);
+        java.util.Set<String> taken = new java.util.HashSet<String>();
+        for (Themes.Theme x : themes) {
+            if (!(replaceCurrent && x == cur)) taken.add(x.name);
+        }
+        String name = taken.contains(res.name) ? NameGen.unique(gender, new java.util.Random(), taken) : res.name;
+        Themes.Theme n = new Themes.Theme("t" + System.currentTimeMillis(), name);
         n.colors.putAll(res.colors);
         for (String[] c : Colors.HIDDEN) {
             if (!n.colors.containsKey(c[0])) n.colors.put(c[0], Colors.def(c[0]));
         }
-        Themes.Theme cur = Themes.find(themes, selId);
         int at = (replaceCurrent && isGeneratedTheme(cur)) ? themes.indexOf(cur) : -1;
         if (at >= 0) themes.set(at, n);
         else themes.add(n);
@@ -865,26 +870,26 @@ final class SettingsUi {
         build();
     }
 
-    /** Ponovo generise izabranu nasumicnu temu (isti nacin: svijetla/tamna ili od iste osnovne boje), bez nove teme. */
+    /**
+     * Ponovo generise izabranu generisanu temu (bez nove teme). Rod u nazivu govori kako je nastala:
+     * muski = nasumicna svijetla/tamna (po svjetlini pozadine), zenski = iz boje pozadine,
+     * srednji = iz boje pozadine i boje praznika (obje se uzimaju iz same teme).
+     */
     private void regenerateRandomTheme() {
         Themes.Theme cur = Themes.find(themes, selId);
-        if (!isGeneratedTheme(cur)) {
+        int gender = NameGen.parse(cur.name);
+        if (gender < 0) {
             toast("Изабрана тема није насумична (или је преименована)");
             return;
         }
-        int mode = cur.name.endsWith("светла") ? RandomTheme.LIGHT : RandomTheme.DARK;
-        Integer base = null;
-        Integer holiday = null;
-        if (cur.name.startsWith(RandomTheme.FROM_COLOR_PREFIX + " ·")) {
-            // u nazivu su zadate boje: prva je pozadina, druga (ako je ima) boja praznika
-            java.util.regex.Matcher m = java.util.regex.Pattern.compile("#([0-9a-fA-F]{6})").matcher(cur.name);
-            if (m.find()) {
-                base = Integer.valueOf(0xff000000 | Integer.parseInt(m.group(1), 16));
-                mode = RandomTheme.ANY;
-                if (m.find()) holiday = Integer.valueOf(0xff000000 | Integer.parseInt(m.group(1), 16));
-            }
+        int bgColor = Colors.parse(cur.color("c_bg")).intValue();
+        if (gender == NameGen.MASC) {
+            int mode = RandomTheme.rgbToHsl(bgColor)[2] >= 0.5f ? RandomTheme.LIGHT : RandomTheme.DARK;
+            addRandomTheme(mode, null, null, true);
+            return;
         }
-        addRandomTheme(mode, base, holiday, true);
+        Integer holiday = gender == NameGen.NEUT ? Integer.valueOf(Colors.parse(cur.color("c_title")).intValue()) : null;
+        addRandomTheme(RandomTheme.ANY, Integer.valueOf(bgColor), holiday, true);
     }
 
     private void renameTheme(final Themes.Theme t) {
