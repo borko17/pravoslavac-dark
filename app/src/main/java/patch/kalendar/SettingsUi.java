@@ -637,48 +637,85 @@ final class SettingsUi {
         return states;
     }
 
-    /** Mali meni teme (ikonica + tekst): prozor je sirine sadrzaja i centriran. */
+    /** Pozadina prozora: boja teme (c_bg) i svjetliji obrub, da se vide ivice. */
+    private GradientDrawable windowBg(int radius) {
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(0xff000000 | bg());
+        g.setCornerRadius(radius);
+        g.setStroke(dp(2), Dark.mix(bg(), text(), 0.38f));
+        return g;
+    }
+
+    /** Prikazuje dijalog sa bojama teme: pozadina i obrub prozora, boje naslova, poruke i dugmadi. */
+    private AlertDialog showStyled(AlertDialog.Builder b) {
+        AlertDialog d = b.create();
+        d.getWindow().setBackgroundDrawable(windowBg(dp(8)));
+        d.show();
+        int tid = act.getResources().getIdentifier("alertTitle", "id", "android");
+        View t = tid != 0 ? d.findViewById(tid) : null;
+        if (t instanceof TextView) ((TextView) t).setTextColor(text());
+        int mid = act.getResources().getIdentifier("message", "id", "android");
+        View m = mid != 0 ? d.findViewById(mid) : null;
+        if (m instanceof TextView) ((TextView) m).setTextColor(text());
+        int[] ids = { AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE, AlertDialog.BUTTON_NEUTRAL };
+        for (int id : ids) {
+            Button bt = d.getButton(id);
+            if (bt != null) bt.setTextColor(text());
+        }
+        return d;
+    }
+
+    /** Mali meni teme (ikonica + tekst). */
     private void showThemeMenu(final Themes.Theme t) {
+        showIconMenu(t.name,
+                new int[] { Icons.EDIT_COLORS, Icons.RENAME, Icons.DELETE },
+                new String[] { "Уреди боје", "Преименуј", "Обриши" },
+                new Runnable[] {
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                editColors(t);
+                            }
+                        },
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                renameTheme(t);
+                            }
+                        },
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                deleteTheme(t);
+                            }
+                        } });
+    }
+
+    /** Mali meni sa ikonicama: prozor je sirine sadrzaja, centriran, sa obrubom. */
+    private void showIconMenu(String titleText, int[] icons, String[] captions, Runnable[] actions) {
         final Dialog d = new Dialog(act, themed() && !Dark.light()
                 ? AlertDialog.THEME_DEVICE_DEFAULT_DARK : AlertDialog.THEME_DEVICE_DEFAULT_LIGHT);
         d.requestWindowFeature(Window.FEATURE_NO_TITLE);
 
         LinearLayout box = new LinearLayout(act);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(0, dp(6), 0, dp(6));
+        // bocni razmak = debljina obruba, da redovi ne prelaze preko njega
+        box.setPadding(dp(2), dp(6), dp(2), dp(6));
 
-        TextView title = label(t.name, 14f, dim());
+        TextView title = label(titleText, 14f, dim());
         title.setSingleLine(true);
         title.setEllipsize(android.text.TextUtils.TruncateAt.END);
         title.setMaxWidth(dp(260));
         title.setPadding(dp(20), dp(10), dp(28), dp(8));
         box.addView(title);
 
-        menuRow(box, d, Icons.EDIT_COLORS, "Уреди боје", new Runnable() {
-            @Override
-            public void run() {
-                editColors(t);
-            }
-        });
-        menuRow(box, d, Icons.RENAME, "Преименуј", new Runnable() {
-            @Override
-            public void run() {
-                renameTheme(t);
-            }
-        });
-        menuRow(box, d, Icons.DELETE, "Обриши", new Runnable() {
-            @Override
-            public void run() {
-                deleteTheme(t);
-            }
-        });
+        for (int i = 0; i < icons.length; i++) {
+            menuRow(box, d, icons[i], captions[i], actions[i]);
+        }
 
         d.setContentView(box);
         Window w = d.getWindow();
-        GradientDrawable shape = new GradientDrawable();
-        shape.setColor(0xff000000 | bg());
-        shape.setCornerRadius(dp(10));
-        w.setBackgroundDrawable(shape);
+        w.setBackgroundDrawable(windowBg(dp(10)));
         // sirina po sadrzaju (tacna sirina u pikselima zaobilazi minimalnu sirinu dijaloga iz teme)
         int maxW = act.getResources().getDisplayMetrics().widthPixels - dp(64);
         box.measure(View.MeasureSpec.makeMeasureSpec(maxW, View.MeasureSpec.AT_MOST),
@@ -698,6 +735,7 @@ final class SettingsUi {
         iv.setImageDrawable(Icons.get(icon, text(), dp(22)));
         row.addView(iv, new LinearLayout.LayoutParams(dp(22), dp(22)));
         TextView tv = label(caption, 16f, text());
+        tv.setMaxWidth(dp(210)); // duzi tekst ide u dva reda, da prozor ne postane preSirok
         tv.setPadding(dp(16), 0, 0, 0);
         row.addView(tv);
         row.setOnClickListener(new View.OnClickListener() {
@@ -728,29 +766,65 @@ final class SettingsUi {
     private static final String KEY_LAST_BASE = "last_base_color";
 
     private void randomThemeMenu() {
-        builder()
-                .setTitle("Насумична тема")
-                .setItems(new CharSequence[] { "Светла", "Тамна", "Од моје боје…" },
-                        new DialogInterface.OnClickListener() {
+        showIconMenu("Насумична тема",
+                new int[] { Icons.SUN, Icons.MOON, Icons.DROP, Icons.DROP_STAR },
+                new String[] { "Светла", "Тамна", "Од моје боје: позадина",
+                        "Од моје боје: позадина и боја празника" },
+                new Runnable[] {
+                        new Runnable() {
                             @Override
-                            public void onClick(DialogInterface d, int which) {
-                                if (which == 2) {
-                                    // osnovna boja: svijetla/tamna tema se odredjuje po njenoj svjetlini
-                                    // pocetna boja je posljednja koju je korisnik unio (a ne pozadina trenutne teme)
-                                    ColorPicker.show(act, sp.getInt(KEY_LAST_BASE, Dark.BG), bg(), text(),
-                                            new ColorPicker.Listener() {
-                                                @Override
-                                                public void onColor(int color) {
-                                                    sp.edit().putInt(KEY_LAST_BASE, color).commit();
-                                                    addRandomTheme(RandomTheme.ANY, Integer.valueOf(color), false);
-                                                }
-                                            });
-                                } else {
-                                    addRandomTheme(which == 0 ? RandomTheme.LIGHT : RandomTheme.DARK, null, false);
-                                }
+                            public void run() {
+                                addRandomTheme(RandomTheme.LIGHT, null, null, false);
                             }
-                        })
-                .show();
+                        },
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                addRandomTheme(RandomTheme.DARK, null, null, false);
+                            }
+                        },
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                pickBaseColor(false);
+                            }
+                        },
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                pickBaseColor(true);
+                            }
+                        } });
+    }
+
+    private static final String KEY_LAST_HOLIDAY = "last_holiday_color";
+
+    /**
+     * Bira se boja pozadine (svijetla/tamna tema se odredjuje po njenoj svjetlini); sa holidays = true bira se
+     * zatim i boja praznika (naslovi i praznici, svjetlina se podesava samo radi kontrasta). Ostalo je nasumicno.
+     * Pocetne boje u biracu su posljednje koje je korisnik unio.
+     */
+    private void pickBaseColor(final boolean holidays) {
+        ColorPicker.show(act, sp.getInt(KEY_LAST_BASE, Dark.BG), bg(), text(), "Боја позадине",
+                new ColorPicker.Listener() {
+                    @Override
+                    public void onColor(final int base) {
+                        sp.edit().putInt(KEY_LAST_BASE, base).commit();
+                        if (!holidays) {
+                            addRandomTheme(RandomTheme.ANY, Integer.valueOf(base), null, false);
+                            return;
+                        }
+                        ColorPicker.show(act, sp.getInt(KEY_LAST_HOLIDAY, Dark.TITLE), bg(), text(),
+                                "Боја празника", new ColorPicker.Listener() {
+                                    @Override
+                                    public void onColor(int holiday) {
+                                        sp.edit().putInt(KEY_LAST_HOLIDAY, holiday).commit();
+                                        addRandomTheme(RandomTheme.ANY, Integer.valueOf(base),
+                                                Integer.valueOf(holiday), false);
+                                    }
+                                });
+                    }
+                });
     }
 
     /** Tema koju je napravio generator (nasumicna ili iz zadate boje) i nije preimenovana. */
@@ -763,9 +837,13 @@ final class SettingsUi {
      * Pravi nasumicnu temu (kontrast je zagarantovan) i odmah je bira. replaceCurrent = true mijenja izabranu
      * generisanu temu novom (bez pravljenja nove u listi), a false uvijek dodaje novu.
      */
-    private void addRandomTheme(int mode, Integer base, boolean replaceCurrent) {
-        RandomTheme.Result res = RandomTheme.generate(new java.util.Random(), mode, base);
-        if (base != null && res.adjusted && !replaceCurrent) toast("Боја је прилагођена ради читљивости");
+    private void addRandomTheme(int mode, Integer base, Integer holidayColor, boolean replaceCurrent) {
+        RandomTheme.Result res = RandomTheme.generate(new java.util.Random(), mode, base, holidayColor);
+        if (!replaceCurrent) {
+            if (res.adjusted && res.adjustedHoliday) toast("Боје су прилагођене ради читљивости");
+            else if (res.adjusted) toast("Боја позадине је прилагођена ради читљивости");
+            else if (res.adjustedHoliday) toast("Боја празника је прилагођена ради читљивости");
+        }
         Themes.Theme n = new Themes.Theme("t" + System.currentTimeMillis(), res.name);
         n.colors.putAll(res.colors);
         for (String[] c : Colors.HIDDEN) {
@@ -789,14 +867,17 @@ final class SettingsUi {
         }
         int mode = cur.name.endsWith("светла") ? RandomTheme.LIGHT : RandomTheme.DARK;
         Integer base = null;
+        Integer holiday = null;
         if (cur.name.startsWith(RandomTheme.FROM_COLOR_PREFIX + " ·")) {
+            // u nazivu su zadate boje: prva je pozadina, druga (ako je ima) boja praznika
             java.util.regex.Matcher m = java.util.regex.Pattern.compile("#([0-9a-fA-F]{6})").matcher(cur.name);
             if (m.find()) {
                 base = Integer.valueOf(0xff000000 | Integer.parseInt(m.group(1), 16));
                 mode = RandomTheme.ANY;
+                if (m.find()) holiday = Integer.valueOf(0xff000000 | Integer.parseInt(m.group(1), 16));
             }
         }
-        addRandomTheme(mode, base, true);
+        addRandomTheme(mode, base, holiday, true);
     }
 
     private void renameTheme(final Themes.Theme t) {
@@ -815,7 +896,7 @@ final class SettingsUi {
             toast("Мора остати бар једна тема");
             return;
         }
-        builder()
+        showStyled(builder()
                 .setTitle("Обриши тему")
                 .setMessage("Обрисати тему „" + t.name + "“?")
                 .setPositiveButton("Обриши", new DialogInterface.OnClickListener() {
@@ -828,7 +909,7 @@ final class SettingsUi {
                     }
                 })
                 .setNegativeButton("Одустани", null)
-                .show();
+                );
     }
 
     // ------------------------------------------------------------------ uredjivanje boja teme
@@ -849,10 +930,7 @@ final class SettingsUi {
                 .setNeutralButton("Врати", null)
                 .create();
         // pozadina editora boja je c_bg, a slova su c_text (naslov i dugmad se boje izricito)
-        android.graphics.drawable.GradientDrawable dbg = new android.graphics.drawable.GradientDrawable();
-        dbg.setColor(0xff000000 | bg());
-        dbg.setCornerRadius(dp(6));
-        d.getWindow().setBackgroundDrawable(dbg);
+        d.getWindow().setBackgroundDrawable(windowBg(dp(8)));
         d.show();
         int tid = act.getResources().getIdentifier("alertTitle", "id", "android");
         View title = tid != 0 ? d.findViewById(tid) : null;
@@ -979,7 +1057,7 @@ final class SettingsUi {
         wrap.addView(et, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        builder()
+        showStyled(builder()
                 .setTitle(title)
                 .setView(wrap)
                 .setPositiveButton(ok, new DialogInterface.OnClickListener() {
@@ -994,7 +1072,7 @@ final class SettingsUi {
                     }
                 })
                 .setNegativeButton("Одустани", null)
-                .show();
+                );
     }
 
     private void setSwatch(View v, int color, int strokeDp) {

@@ -26,8 +26,11 @@ final class RandomTheme {
         final Map<String, String> colors;
         /** true ako je zadata osnovna boja morala biti prilagodjena (svjetlina/zasicenost) radi citljivosti. */
         final boolean adjusted;
+        /** true ako je zadata boja praznika morala biti prilagodjena (svjetlina) radi citljivosti. */
+        final boolean adjustedHoliday;
 
-        Result(boolean light, String name, Map<String, String> colors, boolean adjusted) {
+        Result(boolean light, String name, Map<String, String> colors, boolean adjusted, boolean adjustedHoliday) {
+            this.adjustedHoliday = adjustedHoliday;
             this.light = light;
             this.name = name;
             this.colors = colors;
@@ -54,6 +57,14 @@ final class RandomTheme {
      * u kom je kontrast zagarantovan. Sve ostalo (naslovi, linkovi, akcenti) se i dalje bira nasumicno.
      */
     static Result generate(Random r, int mode, Integer base) {
+        return generate(r, mode, base, null);
+    }
+
+    /**
+     * Uz zadatu osnovnu boju moze se zadati i boja praznika (holidayColor): naslovi i praznici (c_title) dobijaju
+     * njenu nijansu i zasicenost, a svjetlina se podesava samo koliko je potrebno radi kontrasta. Ostalo je nasumicno.
+     */
+    static Result generate(Random r, int mode, Integer base, Integer holidayColor) {
         float[] bh = base != null ? rgbToHsl(base.intValue()) : null;
         boolean light;
         if (bh != null) light = bh[2] >= 0.5f;
@@ -64,12 +75,13 @@ final class RandomTheme {
 
         // ---- osnovna nijansa i pozadine
         boolean adjusted = false;
+        boolean neutral = false;
         float h0;
         float bgS;
         float bgL;
         if (bh != null) {
             // siva (zasicenost ~0) nema nijansu: pozadine ostaju neutralne, a nijansa ostalih boja je slucajna
-            boolean neutral = bh[1] < 0.02f;
+            neutral = bh[1] < 0.02f;
             h0 = neutral ? r.nextFloat() * 360f : bh[0];
             // donje granice su 0 (prava siva i prava crna/bijela ostaju kakve jesu); gornje cuvaju kontrast
             bgS = clamp(bh[1], 0f, light ? 0.60f : 0.35f);
@@ -99,11 +111,16 @@ final class RandomTheme {
 
         // ---- nijanse akcenata
         float ht;
-        switch (r.nextInt(4)) {
-            case 0: ht = h0 + 30f; break;
-            case 1: ht = h0 + 180f; break;
-            case 2: ht = h0 + 150f; break;
-            default: ht = r.nextFloat() * 360f;
+        float[] hh = holidayColor != null ? rgbToHsl(holidayColor.intValue()) : null;
+        if (hh != null && hh[1] >= 0.02f) {
+            ht = hh[0]; // naslovi, praznici i crvene linije u nijansi zadate boje praznika
+        } else {
+            switch (r.nextInt(4)) {
+                case 0: ht = h0 + 30f; break;
+                case 1: ht = h0 + 180f; break;
+                case 2: ht = h0 + 150f; break;
+                default: ht = r.nextFloat() * 360f;
+            }
         }
         float hl = r.nextBoolean() ? 195f + r.nextFloat() * 60f : ht + 120f + r.nextFloat() * 120f;
         if (hueDist(ht, hl) < 40f) hl += 90f;
@@ -115,7 +132,15 @@ final class RandomTheme {
         int text = fit(h0, ts, light ? 0.12f : 0.90f, dir, MIN_TEXT, surfaces);
         int webText = fit(h0, ts, light ? 0.17f : 0.84f, dir, MIN_WEB_TEXT, webBg, surface);
         int head2 = fit(h0, ts, light ? 0.10f : 0.92f, dir, MIN_TEXT, webBg);
-        int title = fit(ht, as, light ? 0.32f : 0.70f, dir, MIN_TITLE, surfaces);
+        int title;
+        boolean adjustedHoliday = false;
+        if (hh != null) {
+            // boja praznika: svjetlina se mijenja samo koliko treba da kontrast bude dovoljan
+            title = fit(hh[0], hh[1], hh[2], dir, MIN_TITLE, surfaces);
+            adjustedHoliday = Math.abs(rgbToHsl(title)[2] - hh[2]) > 0.03f;
+        } else {
+            title = fit(ht, as, light ? 0.32f : 0.70f, dir, MIN_TITLE, surfaces);
+        }
         int link = fit(hl, as, light ? 0.32f : 0.72f, dir, MIN_LINK, webBg, surface);
         int visited = fit(hv, as * 0.8f, light ? 0.34f : 0.74f, dir, MIN_VISITED, webBg, surface);
         // ozname verzija (СРПСКИ, ЦРКВЕНОСЛОВЕНСКИ…) su u knjigama zelene: nijansa ostaje oko zelene
@@ -196,9 +221,10 @@ final class RandomTheme {
         put(m, "c_web_line", webLine);
 
         String tag = Integer.toHexString(0x1000 + r.nextInt(0xfff)).substring(1);
-        String name = (bh != null ? FROM_COLOR_PREFIX + " · #" + Colors.hex(base.intValue()) : NAME_PREFIX + " · " + tag)
+        String name = (bh != null ? FROM_COLOR_PREFIX + " · #" + Colors.hex(base.intValue())
+                + (holidayColor != null ? " + #" + Colors.hex(holidayColor.intValue()) : "") : NAME_PREFIX + " · " + tag)
                 + " · " + (light ? "светла" : "тамна");
-        return new Result(light, name, m, adjusted);
+        return new Result(light, name, m, adjusted, adjustedHoliday);
     }
 
     // ------------------------------------------------------------------ boje i kontrast

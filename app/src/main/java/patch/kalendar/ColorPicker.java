@@ -45,7 +45,12 @@ final class ColorPicker {
     }
 
     /** bg = pozadina dijaloga (c_bg), fg = boja slova dugmadi i obrisa (c_text). */
-    static void show(final Context ctx, int initial, final int bgColor, final int fgColor,
+    static void show(Context ctx, int initial, int bgColor, int fgColor, Listener listener) {
+        show(ctx, initial, bgColor, fgColor, null, listener);
+    }
+
+    /** Isto, sa naslovom dijaloga (npr. koja se boja bira); title = null znaci bez naslova. */
+    static void show(final Context ctx, int initial, final int bgColor, final int fgColor, String title,
                      final Listener listener) {
         final float[] hsv = new float[3];
         Color.colorToHSV(initial, hsv);
@@ -132,7 +137,9 @@ final class ColorPicker {
             }
         });
 
-        AlertDialog dlg = new AlertDialog.Builder(ctx, AlertDialog.THEME_DEVICE_DEFAULT_DARK)
+        AlertDialog.Builder builder = new AlertDialog.Builder(ctx, AlertDialog.THEME_DEVICE_DEFAULT_DARK);
+        if (title != null) builder.setTitle(title);
+        AlertDialog dlg = builder
                 .setView(scroll)
                 .setPositiveButton("U redu", new DialogInterface.OnClickListener() {
                     @Override
@@ -146,7 +153,9 @@ final class ColorPicker {
         // tastatura se ne otvara sama; kad se otvori, dijalog se smanji umjesto da prekrije birac
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(0xff000000 | bgColor);
-        bg.setCornerRadius(dp(ctx, 6));
+        bg.setCornerRadius(dp(ctx, 8));
+        // svjetliji obrub, da se vide ivice prozora
+        bg.setStroke(dp(ctx, 2), Dark.mix(bgColor, fgColor, 0.38f));
         dlg.getWindow().setBackgroundDrawable(bg);
         dlg.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN
                 | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
@@ -155,6 +164,9 @@ final class ColorPicker {
         int btn = 0xff000000 | fgColor;
         dlg.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(btn);
         dlg.getButton(DialogInterface.BUTTON_NEUTRAL).setTextColor(btn);
+        int tid = ctx.getResources().getIdentifier("alertTitle", "id", "android");
+        View titleView = tid != 0 ? dlg.findViewById(tid) : null;
+        if (titleView instanceof android.widget.TextView) ((android.widget.TextView) titleView).setTextColor(btn);
     }
 
     private static int dp(Context ctx, int v) {

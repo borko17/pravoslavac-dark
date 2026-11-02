@@ -17,6 +17,10 @@ final class Icons {
     static final int EDIT_COLORS = 3;  // uredi boje (paleta)
     static final int RENAME = 4;       // preimenuj (olovka)
     static final int DELETE = 5;       // obrisi (korpa)
+    static final int SUN = 6;          // svijetla
+    static final int MOON = 7;         // tamna
+    static final int DROP = 8;         // od moje boje (kap boje)
+    static final int DROP_STAR = 9;    // od moje boje: pozadina i praznici (kap + zvijezda)
 
     private Icons() {}
 
@@ -30,6 +34,7 @@ final class Icons {
         private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Path p = new Path();
+        private final Path p2 = new Path();
         private final RectF r = new RectF();
 
         Icon(int type, int color, int size) {
@@ -57,6 +62,18 @@ final class Icons {
         private void plus(Canvas c, float cx, float cy, float h) {
             c.drawLine(cx - h, cy, cx + h, cy, line);
             c.drawLine(cx, cy - h, cx, cy + h, line);
+        }
+
+        /** Kap: spicasti vrh i okruglo dno. */
+        private void drop(Canvas c) {
+            p.reset();
+            p.moveTo(12f, 3f);
+            p.cubicTo(12f, 3f, 5.5f, 10f, 5.5f, 14.5f);
+            r.set(5.5f, 8f, 18.5f, 21f);
+            p.arcTo(r, 180f, -180f);
+            p.cubicTo(18.5f, 10f, 12f, 3f, 12f, 3f);
+            p.close();
+            c.drawPath(p, line);
         }
 
         private void dot(Canvas c, float x, float y, float rad) {
@@ -145,6 +162,45 @@ final class Icons {
                     c.drawPath(p, line);
                     c.drawLine(10.2f, 10.5f, 10.2f, 16.5f, line);
                     c.drawLine(13.8f, 10.5f, 13.8f, 16.5f, line);
+                    break;
+                case SUN:
+                    c.drawCircle(12f, 12f, 4.2f, line);
+                    for (int i = 0; i < 8; i++) {
+                        double a = Math.toRadians(i * 45.0);
+                        float cs = (float) Math.cos(a);
+                        float sn = (float) Math.sin(a);
+                        c.drawLine(12f + 7.2f * cs, 12f + 7.2f * sn, 12f + 9.6f * cs, 12f + 9.6f * sn, line);
+                    }
+                    break;
+                case MOON:
+                    // polumjesec: veliki krug bez manjeg krug
+                    p.reset();
+                    p.addCircle(12f, 12f, 8.5f, Path.Direction.CW);
+                    p2.reset();
+                    p2.addCircle(17f, 8.5f, 7f, Path.Direction.CW);
+                    p.op(p2, Path.Op.DIFFERENCE);
+                    c.drawPath(p, line);
+                    break;
+                case DROP:
+                    drop(c);
+                    break;
+                case DROP_STAR:
+                    c.save();
+                    c.translate(-1.5f, 1.5f);
+                    drop(c);
+                    c.restore();
+                    // zvijezda u gornjem desnom uglu
+                    p.reset();
+                    for (int i = 0; i < 10; i++) {
+                        double a = Math.toRadians(-90.0 + i * 36.0);
+                        float rr = (i % 2 == 0) ? 3.4f : 1.4f;
+                        float x = 19f + rr * (float) Math.cos(a);
+                        float y = 5f + rr * (float) Math.sin(a);
+                        if (i == 0) p.moveTo(x, y);
+                        else p.lineTo(x, y);
+                    }
+                    p.close();
+                    c.drawPath(p, fill);
                     break;
                 default:
                     break;
