@@ -221,8 +221,8 @@ final class RandomTheme {
         put(m, "c_web_line", webLine);
 
         String tag = Integer.toHexString(0x1000 + r.nextInt(0xfff)).substring(1);
-        String name = (bh != null ? FROM_COLOR_PREFIX + " · #" + Colors.hex(base.intValue())
-                + (holidayColor != null ? " + #" + Colors.hex(holidayColor.intValue()) : "") : NAME_PREFIX + " · " + tag)
+        String name = (bh != null ? FROM_COLOR_PREFIX + " · #" + Colors.hex(bg)
+                + (holidayColor != null ? " + #" + Colors.hex(title) : "") : NAME_PREFIX + " · " + tag)
                 + " · " + (light ? "светла" : "тамна");
         return new Result(light, name, m, adjusted, adjustedHoliday);
     }
