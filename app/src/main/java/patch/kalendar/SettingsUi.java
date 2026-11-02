@@ -379,10 +379,10 @@ final class SettingsUi {
         if (tab == 0) {
             root.addView(makeSwitch("Прескочи уводни екран", "Апликација се отвара без уводног екрана.",
                     Prefs.KEY_SKIP_SPLASH, true));
-            root.addView(makeSwitch("Текст поравнат лево", "Уместо обостраног поравнања.",
-                    Prefs.KEY_LEFT, true));
             root.addView(makeSwitch("Апликација отвара календар", "Отвара се календар уместо житија за тај дан.",
                     Prefs.KEY_OPEN_CALENDAR, true));
+            root.addView(makeSwitch("Текст поравнат лево", "Уместо обостраног поравнања.",
+                    Prefs.KEY_LEFT, true));
             root.addView(makeSwitch("Теме",
                     "Укључено: Тема у одабраним бојама. Искључено: оригинална боја апликације.",
                     Prefs.KEY_DARK, true));
