@@ -840,14 +840,7 @@ final class SettingsUi {
     private void addRandomTheme(int mode, Integer base, Integer holidayColor, boolean replaceCurrent) {
         RandomTheme.Result res = RandomTheme.generate(new java.util.Random(), mode, base, holidayColor);
         if (!replaceCurrent) {
-            if (res.usedForRows) {
-                // zadata boja je presvijetla/pretamna za pozadinu: pozadina je prilagodjena, a boja ide na neparne dane
-                String msg = res.adjustedRow
-                        ? "Позадина је прилагођена, а ваша боја је (мало прилагођена) употребљена за непарне дане"
-                        : "Позадина је прилагођена, а ваша боја је употребљена за непарне дане";
-                if (res.adjustedHoliday) msg += "; боја празника је прилагођена ради читљивости";
-                toast(msg);
-            } else if (res.adjusted && res.adjustedHoliday) toast("Боје су прилагођене ради читљивости");
+            if (res.adjusted && res.adjustedHoliday) toast("Боје су прилагођене ради читљивости");
             else if (res.adjusted) toast("Боја позадине је прилагођена ради читљивости");
             else if (res.adjustedHoliday) toast("Боја празника је прилагођена ради читљивости");
         }

@@ -28,18 +28,8 @@ final class RandomTheme {
         final boolean adjusted;
         /** true ako je zadata boja praznika morala biti prilagodjena (svjetlina) radi citljivosti. */
         final boolean adjustedHoliday;
-        /**
-         * true ako je zadata pozadina bila presvijetla (tamna tema) odnosno pretamna (svijetla tema) pa je
-         * zadata boja iskoristena za neparne dane (c_row), a pozadina je prilagodjena.
-         */
-        final boolean usedForRows;
-        /** true ako je i boja neparnih dana (zadata boja) morala malo promijeniti svjetlinu radi citljivosti teksta. */
-        final boolean adjustedRow;
 
-        Result(boolean light, String name, Map<String, String> colors, boolean adjusted, boolean adjustedHoliday,
-               boolean usedForRows, boolean adjustedRow) {
-            this.usedForRows = usedForRows;
-            this.adjustedRow = adjustedRow;
+        Result(boolean light, String name, Map<String, String> colors, boolean adjusted, boolean adjustedHoliday) {
             this.adjustedHoliday = adjustedHoliday;
             this.light = light;
             this.name = name;
@@ -56,8 +46,6 @@ final class RandomTheme {
     static final double MIN_VISITED = 5.5;   // posjeceni linkovi
     static final double MIN_TAB = 7.0;       // slova na tabovima
     static final double MIN_ACCENT = 3.0;    // akcent, okvir danasnjeg dana, crvene linije
-    /** Najmanji kontrast izmedju najcitljivijeg teksta (bijela/crna) i boje neparnih dana kad je ona zadata. */
-    static final double MIN_ROW_TEXT = 7.0;
 
     static Result generate(Random r, int mode) {
         return generate(r, mode, null);
@@ -67,8 +55,6 @@ final class RandomTheme {
      * Ako je zadata osnovna boja (base), iz nje se uzimaju nijansa, zasicenost i svjetlina pozadina:
      * svijetla/tamna tema se odredjuje po njenoj svjetlini, a zasicenost i svjetlina se ogranice na raspon
      * u kom je kontrast zagarantovan. Sve ostalo (naslovi, linkovi, akcenti) se i dalje bira nasumicno.
-     * Ako je zadata boja presvijetla za tamnu pozadinu (ili pretamna za svijetlu), pozadina se prilagodi, a
-     * zadata boja se ne gubi: koristi se za neparne dane, a pozadina se racuna iz nje (isti razmak kao inace).
      */
     static Result generate(Random r, int mode, Integer base) {
         return generate(r, mode, base, null);
@@ -90,7 +76,6 @@ final class RandomTheme {
         // ---- osnovna nijansa i pozadine
         boolean adjusted = false;
         boolean neutral = false;
-        boolean rowFromBase = false;
         float h0;
         float bgS;
         float bgL;
@@ -102,34 +87,14 @@ final class RandomTheme {
             bgS = clamp(bh[1], 0f, light ? 0.60f : 0.35f);
             bgL = clamp(bh[2], light ? 0.93f : 0f, light ? 1f : 0.12f);
             adjusted = Math.abs(bgS - bh[1]) > 0.02f || Math.abs(bgL - bh[2]) > 0.02f;
-            // zadata boja je na "strani redova" (tamna tema: svjetlija od najsvjetlije dozvoljene pozadine,
-            // svijetla tema: tamnija od najtamnije): pozadina se prilagodi, a zadata boja ide na neparne dane
-            rowFromBase = light ? bh[2] < bgL - 0.02f : bh[2] > bgL + 0.02f;
         } else {
             h0 = r.nextFloat() * 360f;
             bgS = light ? 0.20f + r.nextFloat() * 0.40f : 0.08f + r.nextFloat() * 0.27f;
             bgL = light ? 0.93f + r.nextFloat() * 0.045f : 0.045f + r.nextFloat() * 0.075f;
         }
-        boolean adjustedRow = false;
-        int row = 0;
-        if (rowFromBase) {
-            // tacna zadata boja ide na neparne dane; mijenja se samo ako na njoj ni najcitljiviji tekst
-            // (bijeli/crni) nema dovoljan kontrast. Pozadina se racuna iz nje, sa istim razmakom kao inace.
-            row = 0xff000000 | (base.intValue() & 0xffffff);
-            int extreme = light ? 0xff000000 : 0xffffffff;
-            float rl = bh[2];
-            for (int i = 0; i < 100 && contrast(extreme, row) < MIN_ROW_TEXT; i++) {
-                float next = rl - dir * 0.01f;            // prema pozadini (tamnije kod tamne, svjetlije kod svijetle teme)
-                if (light ? next > 1f : next < 0f) break;
-                rl = next;
-                row = hsl(bh[0], bh[1], rl);
-                adjustedRow = true;
-            }
-            bgL = clamp(light ? rl + 0.045f : rl - 0.04f, 0f, 1f);
-        }
         int bg = hsl(h0, bgS, bgL);
         int surface = hsl(h0, bgS, clamp(light ? bgL + 0.03f : bgL + 0.025f, 0f, 0.99f));
-        if (!rowFromBase) row = hsl(h0, Math.min(1f, bgS + 0.05f), light ? bgL - 0.045f : bgL + 0.04f);
+        int row = hsl(h0, Math.min(1f, bgS + 0.05f), light ? bgL - 0.045f : bgL + 0.04f);
         int month = hsl(h0 + 8f, Math.min(1f, bgS + 0.10f), light ? bgL - 0.075f : bgL + 0.055f);
         int webBg = bg;
         int[] surfaces = { bg, surface, row, webBg, month };
@@ -259,7 +224,7 @@ final class RandomTheme {
         String name = (bh != null ? FROM_COLOR_PREFIX + " · #" + Colors.hex(base.intValue())
                 + (holidayColor != null ? " + #" + Colors.hex(holidayColor.intValue()) : "") : NAME_PREFIX + " · " + tag)
                 + " · " + (light ? "светла" : "тамна");
-        return new Result(light, name, m, adjusted, adjustedHoliday, rowFromBase, adjustedRow);
+        return new Result(light, name, m, adjusted, adjustedHoliday);
     }
 
     // ------------------------------------------------------------------ boje i kontrast
