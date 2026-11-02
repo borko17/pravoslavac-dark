@@ -68,7 +68,7 @@ final class RandomTheme {
      * svijetla/tamna tema se odredjuje po njenoj svjetlini, a zasicenost i svjetlina se ogranice na raspon
      * u kom je kontrast zagarantovan. Sve ostalo (naslovi, linkovi, akcenti) se i dalje bira nasumicno.
      * Ako je zadata boja presvijetla za tamnu pozadinu (ili pretamna za svijetlu), pozadina se prilagodi, a
-     * zadata boja se ne gubi: koristi se za neparne dane (tamo je svjetlija, kod svijetlih tema tamnija nijansa).
+     * zadata boja se ne gubi: koristi se za neparne dane, a pozadina se racuna iz nje (isti razmak kao inace).
      */
     static Result generate(Random r, int mode, Integer base) {
         return generate(r, mode, base, null);
@@ -110,23 +110,26 @@ final class RandomTheme {
             bgS = light ? 0.20f + r.nextFloat() * 0.40f : 0.08f + r.nextFloat() * 0.27f;
             bgL = light ? 0.93f + r.nextFloat() * 0.045f : 0.045f + r.nextFloat() * 0.075f;
         }
-        int bg = hsl(h0, bgS, bgL);
-        int surface = hsl(h0, bgS, clamp(light ? bgL + 0.03f : bgL + 0.025f, 0f, 0.99f));
-        int row = hsl(h0, Math.min(1f, bgS + 0.05f), light ? bgL - 0.045f : bgL + 0.04f);
         boolean adjustedRow = false;
+        int row = 0;
         if (rowFromBase) {
-            // tacna zadata boja; mijenja se samo ako na njoj ni najcitljiviji tekst (bijeli/crni) nema dovoljan kontrast
+            // tacna zadata boja ide na neparne dane; mijenja se samo ako na njoj ni najcitljiviji tekst
+            // (bijeli/crni) nema dovoljan kontrast. Pozadina se racuna iz nje, sa istim razmakom kao inace.
             row = 0xff000000 | (base.intValue() & 0xffffff);
             int extreme = light ? 0xff000000 : 0xffffffff;
             float rl = bh[2];
             for (int i = 0; i < 100 && contrast(extreme, row) < MIN_ROW_TEXT; i++) {
                 float next = rl - dir * 0.01f;            // prema pozadini (tamnije kod tamne, svjetlije kod svijetle teme)
-                if (light ? next > bgL : next < bgL) break;
+                if (light ? next > 1f : next < 0f) break;
                 rl = next;
                 row = hsl(bh[0], bh[1], rl);
                 adjustedRow = true;
             }
+            bgL = clamp(light ? rl + 0.045f : rl - 0.04f, 0f, 1f);
         }
+        int bg = hsl(h0, bgS, bgL);
+        int surface = hsl(h0, bgS, clamp(light ? bgL + 0.03f : bgL + 0.025f, 0f, 0.99f));
+        if (!rowFromBase) row = hsl(h0, Math.min(1f, bgS + 0.05f), light ? bgL - 0.045f : bgL + 0.04f);
         int month = hsl(h0 + 8f, Math.min(1f, bgS + 0.10f), light ? bgL - 0.075f : bgL + 0.055f);
         int webBg = bg;
         int[] surfaces = { bg, surface, row, webBg, month };
