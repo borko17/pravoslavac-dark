@@ -21,6 +21,7 @@ final class Icons {
     static final int MOON = 7;         // tamna
     static final int DROP = 8;         // od moje boje (kap boje)
     static final int DROP_STAR = 9;    // od moje boje: pozadina i praznici (kap + zvijezda)
+    static final int OPTIONS = 10;     // opcije teme (klizaci)
 
     private Icons() {}
 
@@ -125,6 +126,15 @@ final class Icons {
                     c.drawPath(p, fill);
                     break;
                 }
+                case OPTIONS:
+                    // tri klizaca sa tackama
+                    c.drawLine(4f, 6f, 20f, 6f, line);
+                    c.drawLine(4f, 12f, 20f, 12f, line);
+                    c.drawLine(4f, 18f, 20f, 18f, line);
+                    c.drawCircle(8f, 6f, 2.4f, fill);
+                    c.drawCircle(16f, 12f, 2.4f, fill);
+                    c.drawCircle(10f, 18f, 2.4f, fill);
+                    break;
                 case EDIT_COLORS:
                     // paleta: krug sa tackicama boje
                     c.drawCircle(12f, 12f, 9f, line);

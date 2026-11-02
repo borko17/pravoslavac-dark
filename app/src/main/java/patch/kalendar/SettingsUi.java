@@ -519,7 +519,7 @@ final class SettingsUi {
     }
 
     private void addThemeSection(LinearLayout root) {
-        TextView h = label("Одабери тему (⋮ = уреди боје, преименуј, обриши)", 14f, dim());
+        TextView h = label("Одабери тему (дугме са десне стране = уреди боје, преименуј, обриши)", 14f, dim());
         h.setPadding(0, dp(8), 0, dp(4));
         root.addView(h);
 
@@ -547,17 +547,24 @@ final class SettingsUi {
             row.addView(rb, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
             // mali pregled teme: pozadina, traka, naslov, link
-            String[] keys = { "c_bg", "c_bar", "c_title", "c_web_link" };
+            String[] keys = { "c_bg", "c_row", "c_title", "c_web_link" };
             for (String k : keys) {
                 View dot = new View(act);
-                setSwatch(dot, Colors.parse(t.color(k)).intValue(), 1);
+                GradientDrawable circle = new GradientDrawable();
+                circle.setShape(GradientDrawable.OVAL);
+                circle.setColor(Colors.parse(t.color(k)).intValue());
+                circle.setStroke(dp(1), 0xff888888);
+                dot.setBackground(circle);
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(16), dp(16));
                 lp.setMargins(dp(2), 0, dp(2), 0);
                 row.addView(dot, lp);
             }
 
-            TextView more = label("\u22EE", 24f, text());
-            more.setPadding(dp(14), dp(8), dp(10), dp(8));
+            ImageView more = new ImageView(act);
+            more.setImageDrawable(Icons.get(Icons.OPTIONS, text(), dp(22)));
+            more.setScaleType(ImageView.ScaleType.CENTER);
+            more.setPadding(dp(10), dp(8), dp(6), dp(8));
+            more.setContentDescription("Опције теме");
             more.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
