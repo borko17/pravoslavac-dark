@@ -25,6 +25,7 @@ final class Icons {
     static final int COPY = 11;        // kopiraj temu (dva lista)
     static final int COPY_ALL = 12;    // kopiraj sve teme (tri lista)
     static final int PASTE = 13;       // ucitaj teme iz klipborda (tabla sa strelicom nadolje)
+    static final int UNDO = 14;        // vrati jedan korak (zakrivljena strelica ulijevo)
 
     private Icons() {}
 
@@ -255,6 +256,22 @@ final class Icons {
                     c.drawLine(12f, 10.5f, 12f, 17f, line);
                     c.drawLine(8.8f, 13.8f, 12f, 17f, line);
                     c.drawLine(15.2f, 13.8f, 12f, 17f, line);
+                    break;
+                case UNDO:
+                    // strelica ulijevo sa lukom nadesno i nadolje
+                    p.reset();
+                    p.moveTo(9f, 7.5f);
+                    p.lineTo(13f, 7.5f);
+                    r.set(6.5f, 7.5f, 19.5f, 20.5f);
+                    p.arcTo(r, -90f, 180f);
+                    p.lineTo(9f, 20.5f);
+                    c.drawPath(p, line);
+                    p.reset();
+                    p.moveTo(3.5f, 7.5f);
+                    p.lineTo(9f, 3.5f);
+                    p.lineTo(9f, 11.5f);
+                    p.close();
+                    c.drawPath(p, fill);
                     break;
                 default:
                     break;

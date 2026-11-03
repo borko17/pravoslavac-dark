@@ -66,6 +66,10 @@ final class SettingsUi {
     private ScrollView scroll;
 
     private List<Themes.Theme> themes;
+    /** Zadnja boja koju je izmijenio otvoreni dijalog (uzastopne izmjene iste boje su jedan korak vracanja). */
+    private String lastUndoKey;
+    /** Osvjezava stanje dugmeta za vracanje u otvorenom dijalogu (ili null). */
+    private Runnable undoRefresh;
     private String selId;
 
     /** Neka postavka koja trazi ponovno kreiranje ekrana je promijenjena. */
@@ -978,8 +982,12 @@ final class SettingsUi {
             if (!n.colors.containsKey(c[0])) n.colors.put(c[0], Colors.def(c[0]));
         }
         int at = (replaceCurrent && isGeneratedTheme(cur)) ? themes.indexOf(cur) : -1;
-        if (at >= 0) themes.set(at, n);
-        else themes.add(n);
+        if (at >= 0) {
+            clearUndo(themes.get(at));
+            themes.set(at, n);
+        } else {
+            themes.add(n);
+        }
         selId = n.id;
         saveThemes();
         build();
@@ -1030,6 +1038,7 @@ final class SettingsUi {
                     @Override
                     public void onClick(DialogInterface d, int w) {
                         themes.remove(t);
+                        clearUndo(t);
                         if (selId.equals(t.id)) selId = themes.get(0).id;
                         saveThemes();
                         build();
@@ -1041,7 +1050,77 @@ final class SettingsUi {
 
     // ------------------------------------------------------------------ uredjivanje boja teme
 
+    // ------------------------------------------------------------------ vracanje boja korak po korak
+
+    private static final int UNDO_MAX = 300;
+
+    private static String undoKey(Themes.Theme t) {
+        return "undo_" + t.id;
+    }
+
+    /** Koraci vracanja teme: {kljuc boje, stara vrijednost}; zadnji je prvi na redu. Cuvaju se trajno. */
+    private List<String[]> loadUndo(Themes.Theme t) {
+        List<String[]> out = new java.util.ArrayList<String[]>();
+        String json = sp.getString(undoKey(t), null);
+        if (json == null) return out;
+        try {
+            org.json.JSONArray a = new org.json.JSONArray(json);
+            for (int i = 0; i < a.length(); i++) {
+                org.json.JSONArray e = a.getJSONArray(i);
+                out.add(new String[] { e.getString(0), e.getString(1) });
+            }
+        } catch (Throwable e) {
+            out.clear();
+        }
+        return out;
+    }
+
+    private void saveUndo(Themes.Theme t, List<String[]> l) {
+        SharedPreferences.Editor ed = sp.edit();
+        if (l.isEmpty()) {
+            ed.remove(undoKey(t));
+        } else {
+            org.json.JSONArray a = new org.json.JSONArray();
+            for (String[] e : l) {
+                org.json.JSONArray p = new org.json.JSONArray();
+                p.put(e[0]);
+                p.put(e[1]);
+                a.put(p);
+            }
+            ed.putString(undoKey(t), a.toString());
+        }
+        ed.apply();
+    }
+
+    private void clearUndo(Themes.Theme t) {
+        sp.edit().remove(undoKey(t)).apply();
+    }
+
+    /** Pamti staru vrijednost boje prije izmjene; uzastopne izmjene iste boje se spajaju u jedan korak. */
+    private void pushUndo(Themes.Theme t, String key, String oldHex) {
+        if (key.equals(lastUndoKey)) return;
+        lastUndoKey = key;
+        List<String[]> l = loadUndo(t);
+        l.add(new String[] { key, oldHex });
+        while (l.size() > UNDO_MAX) l.remove(0);
+        saveUndo(t, l);
+        if (undoRefresh != null) undoRefresh.run();
+    }
+
+    /** Vraca jednu boju unazad; false ako nema sta da se vrati. */
+    private boolean undoColor(Themes.Theme t) {
+        List<String[]> l = loadUndo(t);
+        if (l.isEmpty()) return false;
+        String[] e = l.remove(l.size() - 1);
+        t.colors.put(e[0], e[1]);
+        saveUndo(t, l);
+        lastUndoKey = null;
+        saveThemes();
+        return true;
+    }
+
     private void editColors(final Themes.Theme t) {
+        lastUndoKey = null;
         final LinearLayout rows = new LinearLayout(act);
         rows.setOrientation(LinearLayout.VERTICAL);
         rows.setPadding(dp(16), dp(8), dp(16), 0);
@@ -1054,7 +1133,7 @@ final class SettingsUi {
                 .setTitle("Боје: " + t.name)
                 .setView(s)
                 .setPositiveButton("Готово", null)
-                .setNeutralButton("Врати", null)
+                .setNeutralButton(" ", null) // tekst se ispod zamjenjuje ikonicom (prazan tekst bi sakrio dugme)
                 .create();
         // pozadina editora boja je c_bg, a slova su c_text (naslov i dugmad se boje izricito)
         d.getWindow().setBackgroundDrawable(windowBg(dp(8)));
@@ -1063,21 +1142,40 @@ final class SettingsUi {
         View title = tid != 0 ? d.findViewById(tid) : null;
         if (title instanceof TextView) ((TextView) title).setTextColor(text());
         d.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(text());
-        d.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(text());
+        // dugme "vrati": ikonica, vraca jednu boju unazad (do boja pri pravljenju teme ili prvom uredjivanju)
+        final Button undoBtn = d.getButton(AlertDialog.BUTTON_NEUTRAL);
+        undoBtn.setText("");
+        undoBtn.setCompoundDrawablesWithIntrinsicBounds(Icons.get(Icons.UNDO, text(), dp(22)), null, null, null);
+        undoBtn.setContentDescription("Врати");
+        undoRefresh = new Runnable() {
+            @Override
+            public void run() {
+                boolean has = !loadUndo(t).isEmpty();
+                undoBtn.setEnabled(has);
+                undoBtn.setAlpha(has ? 1f : 0.35f);
+            }
+        };
+        undoRefresh.run();
         // "Vrati" ne zatvara dijalog
-        d.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(new View.OnClickListener() {
+        undoBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Map<String, String> orig = Themes.builtinColors(t.id);
-                t.colors.clear();
-                if (orig != null) t.colors.putAll(orig);
-                saveThemes();
-                fillRows(rows, t);
+                if (undoColor(t)) fillRows(rows, t);
+                undoRefresh.run();
+            }
+        });
+        undoBtn.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                toast("Врати једну боју уназад");
+                return true;
             }
         });
         d.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
             public void onDismiss(DialogInterface dlg) {
+                undoRefresh = null;
+                lastUndoKey = null;
                 build(); // osvjezi pregled boja i boje ovog ekrana
             }
         });
@@ -1140,7 +1238,10 @@ final class SettingsUi {
                 Integer c = Colors.parse(s.toString());
                 if (c != null) {
                     setSwatch(swatch, c.intValue(), 1);
-                    t.colors.put(key, Colors.hex(c.intValue()));
+                    String old = t.color(key);
+                    String now = Colors.hex(c.intValue());
+                    if (!now.equals(old)) pushUndo(t, key, old);
+                    t.colors.put(key, now);
                     saveThemes();
                 } else {
                     swatch.setBackground(null);
