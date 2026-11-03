@@ -3,6 +3,8 @@ package patch.kalendar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
@@ -600,6 +602,18 @@ final class SettingsUi {
                         regenerateRandomTheme();
                     }
                 }));
+        icons.addView(iconButton(Icons.COPY_ALL, "Копирај све теме", 1f, new Runnable() {
+            @Override
+            public void run() {
+                copyThemes(themes);
+            }
+        }));
+        icons.addView(iconButton(Icons.PASTE, "Учитај копиране теме", 1f, new Runnable() {
+            @Override
+            public void run() {
+                pasteThemes();
+            }
+        }));
         root.addView(icons);
     }
 
@@ -625,7 +639,7 @@ final class SettingsUi {
             }
         });
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(48));
-        lp.setMargins(dp(8), 0, dp(8), 0);
+        lp.setMargins(dp(4), 0, dp(4), 0);
         v.setLayoutParams(lp);
         return v;
     }
@@ -675,8 +689,8 @@ final class SettingsUi {
     /** Mali meni teme (ikonica + tekst). */
     private void showThemeMenu(final Themes.Theme t) {
         showIconMenu(t.name,
-                new int[] { Icons.EDIT_COLORS, Icons.RENAME, Icons.DELETE },
-                new String[] { "Уреди боје", "Преименуј", "Обриши" },
+                new int[] { Icons.EDIT_COLORS, Icons.RENAME, Icons.COPY, Icons.DELETE },
+                new String[] { "Уреди боје", "Преименуј", "Копирај", "Обриши" },
                 new Runnable[] {
                         new Runnable() {
                             @Override
@@ -688,6 +702,12 @@ final class SettingsUi {
                             @Override
                             public void run() {
                                 renameTheme(t);
+                            }
+                        },
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                copyThemes(java.util.Collections.singletonList(t));
                             }
                         },
                         new Runnable() {
@@ -770,6 +790,84 @@ final class SettingsUi {
             }
         });
         box.addView(row);
+    }
+
+    // ------------------------------------------------------------------ kopiranje i ucitavanje tema (klipbord)
+
+    /** Stavlja zadate teme u klipbord kao JSON. */
+    private void copyThemes(List<Themes.Theme> list) {
+        try {
+            ClipboardManager cm = (ClipboardManager) act.getSystemService(Context.CLIPBOARD_SERVICE);
+            cm.setPrimaryClip(ClipData.newPlainText("kalendar-teme", Themes.toJson(list)));
+            toast(list.size() == 1 ? "Тема је копирана" : "Копирано тема: " + list.size());
+        } catch (Throwable e) {
+            toast("Копирање није успјело");
+        }
+    }
+
+    private boolean sameTheme(Themes.Theme a, Themes.Theme b) {
+        if (!a.name.equals(b.name)) return false;
+        for (String[] c : Colors.ALL) {
+            if (!a.color(c[0]).equals(b.color(c[0]))) return false;
+        }
+        for (String[] c : Colors.HIDDEN) {
+            if (!a.color(c[0]).equals(b.color(c[0]))) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Dodaje teme iz klipborda kao nove (stare se ne diraju). Tema sa istim nazivom i istim bojama kao postojeca
+     * se preskace, a ako je naziv zauzet (sa drugim bojama) dobija sufiks " 2", " 3"...
+     */
+    private void pasteThemes() {
+        String text = null;
+        try {
+            ClipboardManager cm = (ClipboardManager) act.getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clip = cm.getPrimaryClip();
+            if (clip != null && clip.getItemCount() > 0) {
+                CharSequence cs = clip.getItemAt(0).coerceToText(act);
+                if (cs != null) text = cs.toString();
+            }
+        } catch (Throwable e) {
+            // ostaje null
+        }
+        List<Themes.Theme> in = Themes.parseImport(text);
+        if (in == null) {
+            toast("Клипборд не садржи теме");
+            return;
+        }
+        java.util.Set<String> names = new java.util.HashSet<String>();
+        for (Themes.Theme x : themes) names.add(x.name);
+        long base = System.currentTimeMillis();
+        int added = 0;
+        int skipped = 0;
+        for (Themes.Theme t : in) {
+            boolean exists = false;
+            for (Themes.Theme x : themes) {
+                if (sameTheme(x, t)) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (exists) {
+                skipped++;
+                continue;
+            }
+            String name = t.name;
+            int k = 2;
+            while (names.contains(name)) name = t.name + " " + (k++);
+            names.add(name);
+            themes.add(t.copy("t" + (base + added), name));
+            added++;
+        }
+        if (added == 0) {
+            toast("Све копиране теме већ постоје");
+            return;
+        }
+        saveThemes();
+        build();
+        toast("Учитано тема: " + added + (skipped > 0 ? " (већ постоје: " + skipped + ")" : ""));
     }
 
     private void addTheme() {

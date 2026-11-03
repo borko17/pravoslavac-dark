@@ -22,6 +22,9 @@ final class Icons {
     static final int DROP = 8;         // od moje boje (kap boje)
     static final int DROP_STAR = 9;    // od moje boje: pozadina i praznici (kap + zvijezda)
     static final int OPTIONS = 10;     // opcije teme (klizaci)
+    static final int COPY = 11;        // kopiraj temu (dva lista)
+    static final int COPY_ALL = 12;    // kopiraj sve teme (tri lista)
+    static final int PASTE = 13;       // ucitaj teme iz klipborda (tabla sa strelicom nadolje)
 
     private Icons() {}
 
@@ -211,6 +214,47 @@ final class Icons {
                     }
                     p.close();
                     c.drawPath(p, fill);
+                    break;
+                case COPY:
+                    // dva lista: prednji i zadnji (vidljiv samo gornji i desni rub)
+                    r.set(3f, 8f, 16f, 21f);
+                    c.drawRoundRect(r, 2.5f, 2.5f, line);
+                    p.reset();
+                    p.moveTo(8f, 8f);
+                    p.lineTo(8f, 3f);
+                    p.lineTo(21f, 3f);
+                    p.lineTo(21f, 16f);
+                    p.lineTo(16f, 16f);
+                    c.drawPath(p, line);
+                    break;
+                case COPY_ALL:
+                    // tri lista jedan iza drugog
+                    r.set(2.5f, 9f, 15f, 21.5f);
+                    c.drawRoundRect(r, 2.5f, 2.5f, line);
+                    p.reset();
+                    p.moveTo(6.5f, 9f);
+                    p.lineTo(6.5f, 6f);
+                    p.lineTo(18.5f, 6f);
+                    p.lineTo(18.5f, 18f);
+                    p.lineTo(15f, 18f);
+                    c.drawPath(p, line);
+                    p.reset();
+                    p.moveTo(10f, 6f);
+                    p.lineTo(10f, 2.5f);
+                    p.lineTo(21.5f, 2.5f);
+                    p.lineTo(21.5f, 14f);
+                    p.lineTo(18.5f, 14f);
+                    c.drawPath(p, line);
+                    break;
+                case PASTE:
+                    // tabla sa stezaljkom i strelicom nadolje (ucitaj)
+                    r.set(5f, 5f, 19f, 21f);
+                    c.drawRoundRect(r, 2.5f, 2.5f, line);
+                    r.set(9f, 3f, 15f, 7f);
+                    c.drawRoundRect(r, 1.5f, 1.5f, line);
+                    c.drawLine(12f, 10.5f, 12f, 17f, line);
+                    c.drawLine(8.8f, 13.8f, 12f, 17f, line);
+                    c.drawLine(15.2f, 13.8f, 12f, 17f, line);
                     break;
                 default:
                     break;

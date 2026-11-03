@@ -108,6 +108,37 @@ final class Themes {
         return out;
     }
 
+    /**
+     * Teme iz JSON-a (npr. iz klipborda) ili null ako tekst nije ispravan niz tema. Za razliku od parse()
+     * ne vraca ugradjene teme; id-jevi iz teksta se ne koriste (pozivalac dodjeljuje nove).
+     */
+    static List<Theme> parseImport(String json) {
+        if (json == null) return null;
+        String s = json.trim();
+        if (!s.startsWith("[")) return null;
+        List<Theme> out = new ArrayList<Theme>();
+        try {
+            JSONArray arr = new JSONArray(s);
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject o = arr.getJSONObject(i);
+                JSONObject c = o.optJSONObject("colors");
+                if (c == null) continue;
+                Theme t = new Theme("", o.optString("name", "Тема").trim());
+                if (t.name.length() == 0) t.name = "Тема";
+                Iterator<String> it = c.keys();
+                while (it.hasNext()) {
+                    String k = it.next();
+                    Integer v = Colors.parse(c.optString(k, null));
+                    if (v != null) t.colors.put(k, Colors.hex(v.intValue()));
+                }
+                if (!t.colors.isEmpty()) out.add(t);
+            }
+        } catch (Throwable e) {
+            return null;
+        }
+        return out.isEmpty() ? null : out;
+    }
+
     static String toJson(List<Theme> list) {
         JSONArray arr = new JSONArray();
         try {
