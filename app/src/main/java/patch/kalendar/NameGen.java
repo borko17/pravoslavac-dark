@@ -12,7 +12,7 @@ import java.util.Set;
 final class NameGen {
     private NameGen() {}
 
-    static final String PREFIX = "НТ: ";
+    static final String PREFIX = "";
 
     static final int MASC = 0; // svijetla/tamna (nasumicna)
     static final int FEM = 1;  // iz boje pozadine
