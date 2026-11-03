@@ -856,7 +856,7 @@ final class SettingsUi {
         for (Themes.Theme x : themes) {
             if (!(replaceCurrent && x == cur)) taken.add(x.name);
         }
-        String name = taken.contains(res.name) ? NameGen.unique(gender, new java.util.Random(), taken) : res.name;
+        String name = taken.contains(res.name) ? NameGen.unique(gender, new java.util.Random(), taken, res.name) : res.name;
         Themes.Theme n = new Themes.Theme("t" + System.currentTimeMillis(), name);
         n.colors.putAll(res.colors);
         for (String[] c : Colors.HIDDEN) {

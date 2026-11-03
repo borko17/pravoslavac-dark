@@ -216,7 +216,7 @@ final class RandomTheme {
         put(m, "c_web_line", webLine);
 
         int gender = base == null ? NameGen.MASC : (holidayColor == null ? NameGen.FEM : NameGen.NEUT);
-        String name = NameGen.make(gender, r);
+        String name = NameGen.make(gender, r, bg, title);
         return new Result(light, name, m, adjusted, adjustedHoliday);
     }
 
