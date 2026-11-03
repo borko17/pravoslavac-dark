@@ -719,7 +719,7 @@ final class SettingsUi {
                             public void run() {
                                 deleteTheme(t);
                             }
-                        } });
+                        } }, true);
     }
 
     /** Mali meni sa ikonicama: prozor je sirine sadrzaja, centriran, sa obrubom. */
