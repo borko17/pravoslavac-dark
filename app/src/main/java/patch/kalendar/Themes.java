@@ -20,8 +20,6 @@ final class Themes {
     static final class Theme {
         final String id;
         String name;
-        /** -1 = obicna tema, 0 = nasumicna svijetla/tamna, 1 = iz boje pozadine, 2 = iz boje pozadine i praznika. */
-        int randomType = -1;
         /** kljuc (iz Colors.ALL) -> "rrggbb"; nedostajuci kljucevi se uzimaju iz Colors.def. */
         final Map<String, String> colors = new LinkedHashMap<String, String>();
 
@@ -91,7 +89,6 @@ final class Themes {
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject o = arr.getJSONObject(i);
                     Theme t = new Theme(o.getString("id"), o.optString("name", "Tema"));
-                    t.randomType = o.optInt("randomType", legacyRandomType(t.name));
                     JSONObject c = o.optJSONObject("colors");
                     if (c != null) {
                         Iterator<String> it = c.keys();
@@ -111,19 +108,6 @@ final class Themes {
         return out;
     }
 
-
-    /** Prepoznaje stare nazive "НТ: pridjev imenica" radi migracije sacuvanih tema. */
-    private static int legacyRandomType(String name) {
-        if (name == null || !name.startsWith("НТ: ")) return -1;
-        String rest = name.substring(4).replaceFirst(" \\d+$", "");
-        int space = rest.lastIndexOf(' ');
-        if (space < 0 || space == rest.length() - 1) return -1;
-        String noun = rest.substring(space + 1);
-        if (noun.endsWith("а")) return 1;
-        if (noun.endsWith("е") || noun.endsWith("о")) return 2;
-        return 0;
-    }
-
     static String toJson(List<Theme> list) {
         JSONArray arr = new JSONArray();
         try {
@@ -131,7 +115,6 @@ final class Themes {
                 JSONObject o = new JSONObject();
                 o.put("id", t.id);
                 o.put("name", t.name);
-                if (t.randomType >= 0) o.put("randomType", t.randomType);
                 JSONObject c = new JSONObject();
                 for (Map.Entry<String, String> e : t.colors.entrySet()) c.put(e.getKey(), e.getValue());
                 o.put("colors", c);
