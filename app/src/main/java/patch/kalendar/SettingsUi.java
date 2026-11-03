@@ -700,6 +700,12 @@ final class SettingsUi {
 
     /** Mali meni sa ikonicama: prozor je sirine sadrzaja, centriran, sa obrubom. */
     private void showIconMenu(String titleText, int[] icons, String[] captions, Runnable[] actions) {
+        showIconMenu(titleText, icons, captions, actions, false);
+    }
+
+    /** withExit = true dodaje na dno red "Одустани" koji samo zatvara meni. */
+    private void showIconMenu(String titleText, int[] icons, String[] captions, Runnable[] actions,
+            boolean withExit) {
         final Dialog d = new Dialog(act, themed() && !Dark.light()
                 ? AlertDialog.THEME_DEVICE_DEFAULT_DARK : AlertDialog.THEME_DEVICE_DEFAULT_LIGHT);
         d.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -719,6 +725,7 @@ final class SettingsUi {
         for (int i = 0; i < icons.length; i++) {
             menuRow(box, d, icons[i], captions[i], actions[i]);
         }
+        if (withExit) menuRow(box, d, -1, "Одустани", null, dim());
 
         d.setContentView(box);
         Window w = d.getWindow();
@@ -733,15 +740,25 @@ final class SettingsUi {
     }
 
     private void menuRow(LinearLayout box, final Dialog d, int icon, String caption, final Runnable action) {
+        menuRow(box, d, icon, caption, action, text());
+    }
+
+    /** icon < 0 = bez ikonice (prazan razmak iste sirine); action == null = samo zatvara meni. */
+    private void menuRow(LinearLayout box, final Dialog d, int icon, String caption, final Runnable action,
+            int captionColor) {
         LinearLayout row = new LinearLayout(act);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(dp(20), dp(13), dp(28), dp(13));
         row.setBackground(pressBg(0, 0, Dark.mix(bg(), text(), 0.18f)));
-        ImageView iv = new ImageView(act);
-        iv.setImageDrawable(Icons.get(icon, text(), dp(22)));
-        row.addView(iv, new LinearLayout.LayoutParams(dp(22), dp(22)));
-        TextView tv = label(caption, 16f, text());
+        if (icon >= 0) {
+            ImageView iv = new ImageView(act);
+            iv.setImageDrawable(Icons.get(icon, text(), dp(22)));
+            row.addView(iv, new LinearLayout.LayoutParams(dp(22), dp(22)));
+        } else {
+            row.addView(new View(act), new LinearLayout.LayoutParams(dp(22), dp(22)));
+        }
+        TextView tv = label(caption, 16f, captionColor);
         tv.setMaxWidth(dp(210)); // duzi tekst ide u dva reda, da prozor ne postane preSirok
         tv.setPadding(dp(16), 0, 0, 0);
         row.addView(tv);
@@ -749,7 +766,7 @@ final class SettingsUi {
             @Override
             public void onClick(View v) {
                 d.dismiss();
-                action.run();
+                if (action != null) action.run();
             }
         });
         box.addView(row);
@@ -801,7 +818,7 @@ final class SettingsUi {
                             public void run() {
                                 pickBaseColor(true);
                             }
-                        } });
+                        } }, true);
     }
 
     private static final String KEY_LAST_HOLIDAY = "last_holiday_color";
