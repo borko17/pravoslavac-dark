@@ -17,17 +17,15 @@ final class RandomTheme {
 
     static final class Result {
         final boolean light;
-        final String name;
         final Map<String, String> colors;
         /** true ako je zadata osnovna boja morala biti prilagodjena (svjetlina/zasicenost) radi citljivosti. */
         final boolean adjusted;
         /** true ako je zadata boja praznika morala biti prilagodjena (svjetlina) radi citljivosti. */
         final boolean adjustedHoliday;
 
-        Result(boolean light, String name, Map<String, String> colors, boolean adjusted, boolean adjustedHoliday) {
+        Result(boolean light, Map<String, String> colors, boolean adjusted, boolean adjustedHoliday) {
             this.adjustedHoliday = adjustedHoliday;
             this.light = light;
-            this.name = name;
             this.colors = colors;
             this.adjusted = adjusted;
         }
@@ -215,9 +213,7 @@ final class RandomTheme {
         put(m, "c_web_head2", head2);
         put(m, "c_web_line", webLine);
 
-        int gender = base == null ? NameGen.MASC : (holidayColor == null ? NameGen.FEM : NameGen.NEUT);
-        String name = NameGen.make(gender, r);
-        return new Result(light, name, m, adjusted, adjustedHoliday);
+        return new Result(light, m, adjusted, adjustedHoliday);
     }
 
     // ------------------------------------------------------------------ boje i kontrast
