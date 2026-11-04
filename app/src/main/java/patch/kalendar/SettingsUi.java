@@ -390,7 +390,7 @@ final class SettingsUi {
             root.addView(makeSwitch("Текст поравнат лево", "Уместо обостраног поравнања.",
                     Prefs.KEY_LEFT, true));
             root.addView(makeSwitch("Теме",
-                    "Укључено: Тема у одабраним бојама. Искључено: оригинална боја апликације.",
+                    "Тема апликације у одабраним бојама.",
                     Prefs.KEY_DARK, true));
         } else {
             addThemeSection(root);
