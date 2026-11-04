@@ -4,31 +4,26 @@ import java.util.Random;
 import java.util.Set;
 
 /**
- * Nazivi generisanih tema: "НТ: <pridjev boje> <imenica>". Pridjev se izvodi iz boje pozadine
- * (npr. "тамноплава", "свијетлозелена"), a za srednji rod i iz boje praznika ("тамноплаво-црвено").
- * Rod imenice govori kako je tema napravljena: muski = nasumicna svijetla/tamna, zenski = iz boje
- * pozadine, srednji = iz boje pozadine i boje praznika. Bez Android/Xposed zavisnosti.
+ * Nazivi generisanih tema: "НТ: <pridjev boje> <imenica>". Pridjev je ime boje iz tabele COLORS koje je najblize
+ * boji pozadine (npr. "тамнорубинска", "пудераста", "светлоплава"), a za srednji rod i boji praznika
+ * ("тамноплаво-корално"). Rod imenice govori kako je tema napravljena: muski = nasumicna svijetla/tamna,
+ * zenski = iz boje pozadine, srednji = iz boje pozadine i boje praznika. Bez Android/Xposed zavisnosti.
  */
 final class NameGen {
     private NameGen() {}
 
-    static final String PREFIX = "";
+    static final String PREFIX = "НТ: ";
 
     static final int MASC = 0; // svijetla/tamna (nasumicna)
     static final int FEM = 1;  // iz boje pozadine
     static final int NEUT = 2; // iz boje pozadine i boje praznika
 
-    /** Prefiksi za svijetle i tamne pozadine (pozadine su uvijek ili vrlo svijetle ili vrlo tamne). */
+    /** Prefiksi za pozadine kojima ime iz tabele nije dovoljno (ekavica). */
     private static final String LIGHT_PREFIX = "светло";
     private static final String DARK_PREFIX = "тамно";
 
-    /** Osnove pridjeva boja (poslije prefiksa); "смеђ" samo za tamne tople nijanse. */
-    private static final String[] HUES = {
-            "црвен", "наранџаст", "смеђ", "жут", "зелен", "тиркизн", "плав", "љубичаст", "пурпурн", "ружичаст", "сив"
-    };
-    /** Neutralne pozadine koje se ne pisu sa prefiksom. */
-    private static final String BLACK = "црн";
-    private static final String WHITE = "бијел";
+    /** Ispod ove zasicenosti boja se smatra sivom (bez nijanse). */
+    private static final float NEUTRAL = 0.04f;
 
     private static final String[][] NOUNS = {
             // MASC
@@ -163,64 +158,219 @@ final class NameGen {
             }
     };
 
-    // ------------------------------------------------------------------ pridjevi boja
+    // ------------------------------------------------------------------ imena boja
+
+    /**
+     * Imena boja: {osnova pridjeva, RRGGBB}. Osnova sa "=" ispred je nepromjenljiva rijec (бордо, беж, крем...)
+     * pa ne dobija nastavke ni prefikse.
+     */
+    private static final String[][] COLORS = {
+            {"црвен", "FF0000"},
+            {"гримизн", "DC143C"},
+            {"скерлетн", "FF2400"},
+            {"карминск", "960018"},
+            {"рубинск", "E0115F"},
+            {"=бордо", "800020"},
+            {"вишњаст", "C2185B"},
+            {"трешњаст", "DE3163"},
+            {"малинаст", "E30B5C"},
+            {"коралн", "FF7F50"},
+            {"лососов", "FA8072"},
+            {"цигластоцрвен", "CB4154"},
+            {"ружичаст", "FFC0CB"},
+            {"пудераст", "FADADD"},
+            {"=циклама", "C71585"},
+            {"=фуксија", "FF00FF"},
+            {"=магента", "FF00A8"},
+            {"љубичаст", "800080"},
+            {"пурпурн", "9B30FF"},
+            {"лавандаст", "B57EDC"},
+            {"јоргованаст", "C8A2C8"},
+            {"аметистн", "9966CC"},
+            {"шљиваст", "8E4585"},
+            {"=индиго", "4B0082"},
+            {"плав", "0000FF"},
+            {"модр", "00008B"},
+            {"азурн", "007FFF"},
+            {"небескоплав", "87CEEB"},
+            {"тиркизн", "40E0D0"},
+            {"=аквамарин", "7FFFD4"},
+            {"сафирн", "0F52BA"},
+            {"кобалтн", "0047AB"},
+            {"=ултрамарин", "120A8F"},
+            {"краљевскоплав", "4169E1"},
+            {"пруск", "003153"},
+            {"петролејск", "005F6A"},
+            {"леден", "D6F1F5"},
+            {"зелен", "008000"},
+            {"смарагдн", "50C878"},
+            {"маслинаст", "808000"},
+            {"жадн", "00A86B"},
+            {"пистацијаст", "93C572"},
+            {"ментолн", "98FF98"},
+            {"маховинаст", "8A9A5B"},
+            {"папратаст", "4F7942"},
+            {"лиметаст", "BFFF00"},
+            {"травнат", "4CBB17"},
+            {"малахитн", "0BDA51"},
+            {"жалфијаст", "9CAF88"},
+            {"боров", "01796F"},
+            {"жут", "FFFF00"},
+            {"лимунаст", "FFF44F"},
+            {"златн", "FFD700"},
+            {"ћилибарн", "FFBF00"},
+            {"=окер", "CC7722"},
+            {"шафранаст", "F4C430"},
+            {"медн", "E6B422"},
+            {"сенфаст", "FFDB58"},
+            {"сламнат", "E4D96F"},
+            {"наранџаст", "FFA500"},
+            {"кајсијаст", "FBCEB1"},
+            {"брескваст", "FFE5B4"},
+            {"бакрен", "B87333"},
+            {"рђаст", "B7410E"},
+            {"=теракота", "E2725B"},
+            {"=бундева", "FF7518"},
+            {"смеђ", "A52A2A"},
+            {"кестењаст", "954535"},
+            {"чоколадн", "7B3F00"},
+            {"карамелн", "C68E17"},
+            {"лешникаст", "A67B5B"},
+            {"орасаст", "654321"},
+            {"=махагони", "C04000"},
+            {"=сепија", "704214"},
+            {"=беж", "F5F5DC"},
+            {"=крем", "FFFDD0"},
+            {"слоновачаст", "FFFFF0"},
+            {"бисерн", "EAE0C8"},
+            {"бел", "FFFFFF"},
+            {"сив", "808080"},
+            {"пепељаст", "B2BEB5"},
+            {"сребрн", "C0C0C0"},
+            {"графитн", "383838"},
+            {"антрацитн", "293133"},
+            {"челичн", "71797E"},
+            {"црн", "000000"}
+    };
+
+    private static final int N = COLORS.length;
+    private static final String[] STEM = new String[N];
+    private static final boolean[] FIXED = new boolean[N];
+    private static final float[][] HSL = new float[N][];
+
+    static {
+        for (int i = 0; i < N; i++) {
+            String st = COLORS[i][0];
+            FIXED[i] = st.startsWith("=");
+            STEM[i] = FIXED[i] ? st.substring(1) : st;
+            HSL[i] = RandomTheme.rgbToHsl(0xFF000000 | Integer.parseInt(COLORS[i][1], 16));
+        }
+    }
+
+    private static int idx(String stem) {
+        for (int i = 0; i < N; i++) {
+            if (STEM[i].equals(stem)) return i;
+        }
+        throw new IllegalStateException(stem);
+    }
 
     private static String ending(int gender, String stem) {
-        if (gender == MASC) return "и";
+        if (gender == MASC) return stem.endsWith("ов") ? "" : "и"; // присвојни: "лососов", "боров"
         if (gender == FEM) return "а";
         char c = stem.charAt(stem.length() - 1);
         return "љњжшчћџђј".indexOf(c) >= 0 ? "е" : "о";
     }
 
-    private static String form(int gender, String stem) {
-        return stem + ending(gender, stem);
+    private static String form(int gender, int i) {
+        return FIXED[i] ? STEM[i] : STEM[i] + ending(gender, STEM[i]);
     }
 
-    /** Osnova nijanse (bez prefiksa) za nijansu h (stepeni), zasicenost s i svjetlinu l. */
-    private static String hueStem(float h, float s, float l, boolean allowBrown) {
-        if (s < 0.04f) return "сив";
-        h = ((h % 360f) + 360f) % 360f;
-        if (h >= 350f || h < 15f) return "црвен";
-        if (h < 50f) return allowBrown && l < 0.5f ? "смеђ" : "наранџаст";
-        if (h < 65f) return "жут";
-        if (h < 165f) return "зелен";
-        if (h < 200f) return "тиркизн";
-        if (h < 255f) return "плав";
-        if (h < 290f) return "љубичаст";
-        if (h < 330f) return "пурпурн";
-        return "ружичаст";
+    private static float hueDist(float a, float b) {
+        float d = Math.abs(a - b) % 360f;
+        return d > 180f ? 360f - d : d;
     }
 
-    /** Pridjev boje pozadine: svjetlina daje prefiks, nijansa osnovu. */
-    private static String bgAdjective(int gender, int bg) {
+    private static final int POOL_DARK = 0;      // tamne pozadine: zasicene boje (nepromjenljive samo ako su tamne)
+    private static final int POOL_PASTEL = 1;    // svijetle pozadine: pastelna imena
+    private static final int POOL_MID = 2;       // rezerva za svijetle pozadine: srednje boje uz prefiks "светло"
+    private static final int POOL_HOLIDAY = 3;   // boja praznika
+
+    private static boolean inPool(int pool, int i) {
+        float s = HSL[i][1];
+        float l = HSL[i][2];
+        if (s < 0.25f) return false;
+        switch (pool) {
+            case POOL_DARK: return l <= 0.75f && (l < 0.3f || !FIXED[i]);
+            case POOL_PASTEL: return l >= 0.6f;
+            case POOL_MID: return l >= 0.3f && l <= 0.75f && !FIXED[i];
+            default: return l >= 0.35f && l <= 0.9f;
+        }
+    }
+
+    /** Boja iz skupa sa najblizom nijansom; izmedju skoro jednako blizih bira nasumicno. -1 ako je skup prazan. */
+    private static int nearest(int pool, float hue, Random r) {
+        float best = 1000f;
+        for (int i = 0; i < N; i++) {
+            if (inPool(pool, i)) best = Math.min(best, hueDist(hue, HSL[i][0]));
+        }
+        if (best >= 1000f) return -1;
+        int[] ok = new int[N];
+        int n = 0;
+        for (int i = 0; i < N; i++) {
+            if (inPool(pool, i) && hueDist(hue, HSL[i][0]) <= best + 8f) ok[n++] = i;
+        }
+        return ok[r.nextInt(n)];
+    }
+
+    /** Pridjev za pozadinu: ime najblize boje, uz prefiks "тамно"/"светло" gdje je potreban. */
+    private static String bgAdjective(int gender, int bg, Random r) {
         float[] hsl = RandomTheme.rgbToHsl(bg);
         boolean light = hsl[2] >= 0.5f;
-        if (hsl[1] < 0.04f) {
-            if (!light && hsl[2] < 0.05f) return form(gender, BLACK);
-            if (light && hsl[2] >= 0.985f) return form(gender, WHITE);
+        if (hsl[1] < NEUTRAL) {
+            if (!light) {
+                if (hsl[2] < 0.05f) return form(gender, idx("црн"));
+                int k = r.nextInt(3);
+                if (k == 0) return form(gender, idx("антрацитн"));
+                if (k == 1) return form(gender, idx("графитн"));
+                return DARK_PREFIX + form(gender, idx("сив"));
+            }
+            if (hsl[2] >= 0.985f) return form(gender, idx("бел"));
+            return r.nextBoolean() ? LIGHT_PREFIX + form(gender, idx("сив")) : form(gender, idx("сребрн"));
         }
-        String stem = hueStem(hsl[0], hsl[1], hsl[2], !light);
-        return (light ? LIGHT_PREFIX : DARK_PREFIX) + form(gender, stem);
+        if (!light) {
+            int i = nearest(POOL_DARK, hsl[0], r);
+            if (i < 0) return DARK_PREFIX + form(gender, idx("сив"));
+            return HSL[i][2] < 0.3f ? form(gender, i) : DARK_PREFIX + form(gender, i);
+        }
+        int p = nearest(POOL_PASTEL, hsl[0], r);
+        if (p >= 0 && hueDist(hsl[0], HSL[p][0]) <= 25f) return form(gender, p);
+        int m = nearest(POOL_MID, hsl[0], r);
+        if (m < 0) return LIGHT_PREFIX + form(gender, idx("сив"));
+        return LIGHT_PREFIX + form(gender, m);
     }
 
-    /** Pridjev boje praznika (bez prefiksa): "црвено", "плаво"... */
-    private static String holidayAdjective(int gender, int holiday) {
-        float[] hsl = RandomTheme.rgbToHsl(holiday);
-        return form(gender, hueStem(hsl[0], hsl[1], hsl[2], false));
+    /** Pridjev za boju praznika (bez prefiksa). */
+    private static String holidayAdjective(int gender, float[] hsl, Random r) {
+        if (hsl[1] < NEUTRAL) {
+            String[] grey = { "сребрн", "сив", "пепељаст", "челичн" };
+            return form(gender, idx(grey[r.nextInt(grey.length)]));
+        }
+        int i = nearest(POOL_HOLIDAY, hsl[0], r);
+        return i < 0 ? form(gender, idx("сив")) : form(gender, i);
     }
 
     private static boolean validBgAdjective(int gender, String adj) {
-        if (adj.equals(form(gender, BLACK)) || adj.equals(form(gender, WHITE))) return true;
-        for (String stem : HUES) {
-            if (adj.equals(DARK_PREFIX + form(gender, stem))) return true;
-            if (adj.equals(LIGHT_PREFIX + form(gender, stem))) return true;
+        for (int i = 0; i < N; i++) {
+            String f = form(gender, i);
+            if (adj.equals(f)) return true;
+            if (!FIXED[i] && (adj.equals(DARK_PREFIX + f) || adj.equals(LIGHT_PREFIX + f))) return true;
         }
         return false;
     }
 
     private static boolean validHolidayAdjective(int gender, String adj) {
-        for (String stem : HUES) {
-            if (adj.equals(form(gender, stem))) return true;
+        for (int i = 0; i < N; i++) {
+            if (adj.equals(form(gender, i))) return true;
         }
         return false;
     }
@@ -246,11 +396,18 @@ final class NameGen {
      * samo za srednji rod.
      */
     static String make(int gender, Random r, int bg, int holiday) {
-        String adj = bgAdjective(gender, bg);
+        String adj = bgAdjective(gender, bg, r);
         if (gender == NEUT) {
-            // ista nijansa pozadine i praznika se ne ponavlja ("тамнозелено", a ne "тамнозелено-зелено")
-            String h = holidayAdjective(gender, holiday);
-            if (!adj.endsWith(h)) adj += "-" + h;
+            // slicna nijansa pozadine i praznika se ne ponavlja ("тамнозелено", a ne "тамнозелено-зелено")
+            float[] b = RandomTheme.rgbToHsl(bg);
+            float[] h = RandomTheme.rgbToHsl(holiday);
+            boolean bn = b[1] < NEUTRAL;
+            boolean hn = h[1] < NEUTRAL;
+            boolean similar = (bn && hn) || (!bn && !hn && hueDist(b[0], h[0]) < 20f);
+            if (!similar) {
+                String ha = holidayAdjective(gender, h, r);
+                if (!adj.endsWith(ha)) adj += "-" + ha;
+            }
         }
         return PREFIX + adj + " " + randomNoun(gender, r);
     }
