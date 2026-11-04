@@ -13,7 +13,7 @@
             android:value="true" />
         <meta-data
             android:name="xposeddescription"
-            android:value="Xposed modul za Православац (com.pravoslavac). Dodate su nove opcije i teme." />
+            android:value="LSPosed modul sa temama i dodatnim opcijama za aplikaciju Православац." />
         <meta-data
             android:name="xposedminversion"
             android:value="93" />
