@@ -4,7 +4,7 @@ import java.util.Random;
 import java.util.Set;
 
 /**
- * Nazivi generisanih tema: "НТ: <pridjev boje> <imenica>". Pridjev je ime boje iz tabele COLORS koje je najblize
+ * Nazivi generisanih tema: "<Pridjev boje> <imenica>" (pridjev pocinje velikim slovom). Pridjev je ime boje iz tabele COLORS koje je najblize
  * boji pozadine (npr. "рубинска", "пудераста", "тегет"), a za srednji rod i boji praznika
  * ("пруско-корално"). Rod imenice govori kako je tema napravljena: muski = nasumicna svijetla/tamna,
  * zenski = iz boje pozadine, srednji = iz boje pozadine i boje praznika. Bez Android/Xposed zavisnosti.
@@ -12,7 +12,8 @@ import java.util.Set;
 final class NameGen {
     private NameGen() {}
 
-    static final String PREFIX = "НТ: ";
+    /** Prefiks naziva generisane teme (prazan = nema prefiksa). */
+    static final String PREFIX = "";
 
     static final int MASC = 0; // svijetla/tamna (nasumicna)
     static final int FEM = 1;  // iz boje pozadine
@@ -382,7 +383,14 @@ final class NameGen {
         return false;
     }
 
+    private static String capitalize(String s) {
+        return s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1);
+    }
+
     private static boolean validAdjective(int gender, String adj) {
+        // pridjev mora poceti velikim slovom; ostalo se provjerava bez njega
+        if (adj.isEmpty() || !Character.isUpperCase(adj.charAt(0))) return false;
+        adj = Character.toLowerCase(adj.charAt(0)) + adj.substring(1);
         if (gender != NEUT) return validBgAdjective(gender, adj);
         int dash = adj.indexOf('-');
         if (dash < 0) return validBgAdjective(gender, adj);
@@ -416,7 +424,7 @@ final class NameGen {
                 if (!adj.endsWith(ha)) adj += "-" + ha;
             }
         }
-        return PREFIX + adj + " " + randomNoun(gender, r);
+        return PREFIX + capitalize(adj) + " " + randomNoun(gender, r);
     }
 
     /**

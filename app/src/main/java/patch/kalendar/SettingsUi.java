@@ -390,7 +390,7 @@ final class SettingsUi {
             root.addView(makeSwitch("Текст поравнат лево", "Уместо обостраног поравнања.",
                     Prefs.KEY_LEFT, true));
             root.addView(makeSwitch("Теме",
-                    "Тема апликације у одабраним бојама.",
+                    "Укључено: Тема у одабраним бојама. Искључено: оригинална боја апликације.",
                     Prefs.KEY_DARK, true));
         } else {
             addThemeSection(root);
@@ -953,7 +953,7 @@ final class SettingsUi {
                 });
     }
 
-    /** Tema koju je napravio generator i nije preimenovana (naziv "НТ: pridjev imenica"). */
+    /** Tema koju je napravio generator i nije preimenovana (naziv "Pridjev imenica"). */
     private boolean isGeneratedTheme(Themes.Theme t) {
         return NameGen.parse(t.name) >= 0;
     }
