@@ -19,7 +19,7 @@ final class NameGen {
     static final int NEUT = 2; // iz boje pozadine i boje praznika
 
     /** Prefiksi za svijetle i tamne pozadine (pozadine su uvijek ili vrlo svijetle ili vrlo tamne). */
-    private static final String LIGHT_PREFIX = "свијетло";
+    private static final String LIGHT_PREFIX = "светло";
     private static final String DARK_PREFIX = "тамно";
 
     /** Osnove pridjeva boja (poslije prefiksa); "смеђ" samo za tamne tople nijanse. */
