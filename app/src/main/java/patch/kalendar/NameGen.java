@@ -5,8 +5,8 @@ import java.util.Set;
 
 /**
  * Nazivi generisanih tema: "НТ: <pridjev boje> <imenica>". Pridjev je ime boje iz tabele COLORS koje je najblize
- * boji pozadine (npr. "тамнорубинска", "пудераста", "светлоплава"), a za srednji rod i boji praznika
- * ("тамноплаво-корално"). Rod imenice govori kako je tema napravljena: muski = nasumicna svijetla/tamna,
+ * boji pozadine (npr. "рубинска", "пудераста", "тегет"), a za srednji rod i boji praznika
+ * ("пруско-корално"). Rod imenice govori kako je tema napravljena: muski = nasumicna svijetla/tamna,
  * zenski = iz boje pozadine, srednji = iz boje pozadine i boje praznika. Bez Android/Xposed zavisnosti.
  */
 final class NameGen {
@@ -17,10 +17,6 @@ final class NameGen {
     static final int MASC = 0; // svijetla/tamna (nasumicna)
     static final int FEM = 1;  // iz boje pozadine
     static final int NEUT = 2; // iz boje pozadine i boje praznika
-
-    /** Prefiksi za pozadine kojima ime iz tabele nije dovoljno (ekavica). */
-    private static final String LIGHT_PREFIX = "светло";
-    private static final String DARK_PREFIX = "тамно";
 
     /** Ispod ove zasicenosti boja se smatra sivom (bez nijanse). */
     private static final float NEUTRAL = 0.04f;
@@ -162,7 +158,7 @@ final class NameGen {
 
     /**
      * Imena boja: {osnova pridjeva, RRGGBB}. Osnova sa "=" ispred je nepromjenljiva rijec (бордо, беж, крем...)
-     * pa ne dobija nastavke ni prefikse.
+     * pa ne dobija nastavke.
      */
     private static final String[][] COLORS = {
             {"црвен", "FF0000"},
@@ -250,7 +246,32 @@ final class NameGen {
             {"графитн", "383838"},
             {"антрацитн", "293133"},
             {"челичн", "71797E"},
-            {"црн", "000000"}
+            {"црн", "000000"},
+            {"винск", "722F37"},
+            {"гранатн", "6C2B2B"},
+            {"купинаст", "5B1F42"},
+            {"патлиџанаст", "5A2A60"},
+            {"=тегет", "1F2A44"},
+            {"јелов", "014421"},
+            {"шумск", "228B22"},
+            {"маслинастозелен", "556B2F"},
+            {"морскозелен", "2E8B57"},
+            {"морскоплав", "006994"},
+            {"кафен", "4B3621"},
+            {"циметаст", "D2691E"},
+            {"различкаст", "6495ED"},
+            {"зумбуласт", "B8A9E8"},
+            {"орхидејск", "DA70D6"},
+            {"бомбонаст", "FF69B4"},
+            {"крушкаст", "E1EC6A"},
+            {"пролећн", "A8E6A1"},
+            {"=цијан", "00FFFF"},
+            {"перуникаст", "5A4FCF"},
+            {"кукурузаст", "FBEC5D"},
+            {"=шартрез", "DFFF00"},
+            {"јабукаст", "8DB600"},
+            {"шампањск", "F7E7CE"},
+            {"нефритн", "6CD9A0"}
     };
 
     private static final int N = COLORS.length;
@@ -290,19 +311,17 @@ final class NameGen {
         return d > 180f ? 360f - d : d;
     }
 
-    private static final int POOL_DARK = 0;      // tamne pozadine: zasicene boje (nepromjenljive samo ako su tamne)
-    private static final int POOL_PASTEL = 1;    // svijetle pozadine: pastelna imena
-    private static final int POOL_MID = 2;       // rezerva za svijetle pozadine: srednje boje uz prefiks "светло"
-    private static final int POOL_HOLIDAY = 3;   // boja praznika
+    private static final int POOL_DARK = 0;     // tamne pozadine: tamna imena (svjetlina do 0.45)
+    private static final int POOL_LIGHT = 1;    // svijetle pozadine: svijetla i pastelna imena (od 0.55)
+    private static final int POOL_HOLIDAY = 2;  // boja praznika: srednje svijetla imena
 
     private static boolean inPool(int pool, int i) {
         float s = HSL[i][1];
         float l = HSL[i][2];
         if (s < 0.25f) return false;
         switch (pool) {
-            case POOL_DARK: return l <= 0.75f && (l < 0.3f || !FIXED[i]);
-            case POOL_PASTEL: return l >= 0.6f;
-            case POOL_MID: return l >= 0.3f && l <= 0.75f && !FIXED[i];
+            case POOL_DARK: return l <= 0.45f;
+            case POOL_LIGHT: return l >= 0.55f;
             default: return l >= 0.35f && l <= 0.9f;
         }
     }
@@ -322,31 +341,20 @@ final class NameGen {
         return ok[r.nextInt(n)];
     }
 
-    /** Pridjev za pozadinu: ime najblize boje, uz prefiks "тамно"/"светло" gdje je potreban. */
+    /** Pridjev za pozadinu: ime najblize boje (tamna imena za tamne, svijetla za svijetle pozadine). */
     private static String bgAdjective(int gender, int bg, Random r) {
         float[] hsl = RandomTheme.rgbToHsl(bg);
         boolean light = hsl[2] >= 0.5f;
         if (hsl[1] < NEUTRAL) {
             if (!light) {
                 if (hsl[2] < 0.05f) return form(gender, idx("црн"));
-                int k = r.nextInt(3);
-                if (k == 0) return form(gender, idx("антрацитн"));
-                if (k == 1) return form(gender, idx("графитн"));
-                return DARK_PREFIX + form(gender, idx("сив"));
+                return form(gender, idx(r.nextBoolean() ? "антрацитн" : "графитн"));
             }
             if (hsl[2] >= 0.985f) return form(gender, idx("бел"));
-            return r.nextBoolean() ? LIGHT_PREFIX + form(gender, idx("сив")) : form(gender, idx("сребрн"));
+            return form(gender, idx(r.nextBoolean() ? "сребрн" : "пепељаст"));
         }
-        if (!light) {
-            int i = nearest(POOL_DARK, hsl[0], r);
-            if (i < 0) return DARK_PREFIX + form(gender, idx("сив"));
-            return HSL[i][2] < 0.3f ? form(gender, i) : DARK_PREFIX + form(gender, i);
-        }
-        int p = nearest(POOL_PASTEL, hsl[0], r);
-        if (p >= 0 && hueDist(hsl[0], HSL[p][0]) <= 25f) return form(gender, p);
-        int m = nearest(POOL_MID, hsl[0], r);
-        if (m < 0) return LIGHT_PREFIX + form(gender, idx("сив"));
-        return LIGHT_PREFIX + form(gender, m);
+        int i = nearest(light ? POOL_LIGHT : POOL_DARK, hsl[0], r);
+        return form(gender, i < 0 ? idx("сив") : i);
     }
 
     /** Pridjev za boju praznika (bez prefiksa). */
@@ -363,7 +371,6 @@ final class NameGen {
         for (int i = 0; i < N; i++) {
             String f = form(gender, i);
             if (adj.equals(f)) return true;
-            if (!FIXED[i] && (adj.equals(DARK_PREFIX + f) || adj.equals(LIGHT_PREFIX + f))) return true;
         }
         return false;
     }
