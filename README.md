@@ -18,7 +18,7 @@ i prikazu teksta.
 - **Preskakanje uvodnog ekrana** (splash).
 - **Otvaranje kalendara pri pokretanju** (tekući mesec) umesto žitija za tekući dan.
 - **Tekst poravnat levo** umesto obostranog (justified) – u WebView sadržaju i u nativnim `TextView` poljima.
-- Podešavanja su **unutar same aplikacije** Pravoslavac; modul nema vlastitu ikonu u launcheru.
+- Podešavanja su **unutar same aplikacije** Православац; modul nema vlastitu ikonu u launcheru.
 
 ## Zahtevi
 
