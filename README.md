@@ -1,29 +1,29 @@
 # Pravoslavac Dark (LSPosed modul)
 
-LSPosed (Xposed) modul za Android aplikaciju **Православац** (`com.pravoslavac`). Dodaje tamnu temu sa
+LSPosed (Xposed) modul za Android aplikaciju **Pravoslavac** (`com.pravoslavac`). Dodaje tamnu temu sa
 potpuno prilagodljivim bojama, nasumično generisane teme i nekoliko opcija za ponašanje aplikacije pri pokretanju
 i prikazu teksta.
 
-> Nezvanični modul. Nije povezan sa autorima aplikacije Православац.
+> Nezvanični modul. Nije povezan sa autorima aplikacije Pravoslavac.
 
 ## Mogućnosti
 
-- **Tamna tema** za cijelu aplikaciju: trake i tabovi, liste, meni, redovi kalendara, dijalozi, kao i
+- **Tamna tema** za celu aplikaciju: trake i tabovi, liste, meni, redovi kalendara, dijalozi, kao i
   sadržaj knjiga, molitvi i žitija (WebView)
-- **Uređivač tema**: 19 podesivih boja, birač boje (prstenovi nijanse, zasićenosti i svjetline + unos
-  hex koda), preimenovanje, brisanje, kopiranje i neograničeno vraćanje izmjena (undo).
-- **Nasumične teme** (svijetle ili tamne) sa zagarantovanim kontrastom slova i pozadine (WCAG omjer
+- **Uređivač tema**: 19 podesivih boja, birač boje (prstenovi nijanse, zasićenosti i svetline + unos
+  hex koda), preimenovanje, brisanje, kopiranje i neograničeno vraćanje izmena (undo).
+- **Nasumične teme** (svetle ili tamne) sa zagarantovanim kontrastom slova i pozadine (WCAG omjer
   kontrasta), uključujući teme generisane iz vlastite boje pozadine i boje praznika.
 - **Prenos tema** preko klipborda (kopiraj sve / učitaj kopirane).
 - **Preskakanje uvodnog ekrana** (splash).
-- **Otvaranje kalendara pri pokretanju** (tekući mjesec) umjesto žitija za tekući dan.
-- **Tekst poravnat lijevo** umjesto obostranog (justified) – u WebView sadržaju i u nativnim `TextView` poljima.
-- Podešavanja su **unutar same aplikacije** Православац; modul nema vlastitu ikonu u launcheru.
+- **Otvaranje kalendara pri pokretanju** (tekući mesec) umesto žitija za tekući dan.
+- **Tekst poravnat levo** umesto obostranog (justified) – u WebView sadržaju i u nativnim `TextView` poljima.
+- Podešavanja su **unutar same aplikacije** Pravoslavac; modul nema vlastitu ikonu u launcheru.
 
-## Zahtjevi
+## Zahtevi
 
 - Android 5.0+ (`minSdk 21`)
-- Instaliran **Православац** (`com.pravoslavac`)
+- Instaliran **Pravoslavac** (`com.pravoslavac`)
 - **LSPosed** (ili drugi okvir kompatibilan sa Xposed API-jem 93)
 
 ## Instalacija
@@ -31,77 +31,77 @@ i prikazu teksta.
 1. Preuzmite najnoviji `Pravoslavac_Dark_<verzija>.apk` iz sekcije **Releases** i instalirajte ga.
 2. U LSPosed-u otvorite **Moduli**, uključite **Pravoslavac Dark** i u opsegu (scope) označite
    `com.pravoslavac`.
-3. Prisilno zaustavite Православац i pokrenite ga ponovo.
+3. Prisilno zaustavite Pravoslavac i pokrenite ga ponovo.
 
 Modul se pojavljuje u LSPosed-u pod nazivom *Pravoslavac Dark*, a paket je `com.pravoslavac.dark`.
 
 ## Podešavanja
 
-U aplikaciji Православац otvorite bočni meni i izaberite poslednju grupu, **Подешавања** (ikonica zupčanika).
-Ekran ima dva taba: **Опције** i **Теме**.
+U aplikaciji Pravoslavac otvorite bočni meni i izaberite poslednju grupu, **Podešavanja** (ikonica zupčanika).
+Ekran ima dva taba: **Opcije** i **Teme**.
 
-### Tab Опције
+### Tab Opcije
 
-Sve četiri opcije su podrazumijevano uključene.
+Sve četiri opcije su podrazumevano uključene.
 
 | Opcija | Šta radi |
 | --- | --- |
-| **Прескочи уводни екран** | Aplikacija se otvara bez uvodnog ekrana. |
-| **Апликација отвара календар** | Pri pokretanju se otvara kalendar (tekući mesec i godina) umjesto žitija za taj dan. |
-| **Текст поравнат лево** | Isključuje obostrano poravnanje teksta. |
-| **Теме** | Uključeno: aplikacija koristi boje odabrane teme. Isključeno: originalne boje aplikacije. |
+| **Preskoči uvodni ekran** | Aplikacija se otvara bez uvodnog ekrana. |
+| **Aplikacija otvara kalendar** | Pri pokretanju se otvara kalendar (tekući mesec i godina) umesto žitija za taj dan. |
+| **Tekst poravnat levo** | Isključuje obostrano poravnanje teksta. |
+| **Teme** | Uključeno: aplikacija koristi boje odabrane teme. Isključeno: originalne boje aplikacije. |
 
-Promjena opcije „Теме“ i „Текст поравнат лево“ primjenjuje se kad zatvorite podešavanja. Ako se pri isključivanju
+Promena opcije „Teme“ i „Tekst poravnat levo“ primenjuje se kad zatvorite podešavanja. Ako se pri isključivanju
 teme neke originalne boje ne mogu vratiti u hodu, aplikacija će zatražiti ponovno pokretanje.
 
-### Tab Теме
+### Tab Teme
 
 Gore je lista tema; dodir bira temu, a dugme **⋮** pored nje otvara meni:
 
-- **Уреди боје** – dodir na kvadrat boje otvara birač boje (ili upišite hex šifru),
-- **Преименуј**,
-- **Копирај**,
-- **Обриши** (mora ostati bar jedna tema).
+- **Uredi boje** – dodir na kvadrat boje otvara birač boje (ili upišite hex šifru),
+- **Preimenuj**,
+- **Kopiraj**,
+- **Obriši** (mora ostati bar jedna tema).
 
 Traka s ikonicama ispod liste:
 
 | Ikonica | Akcija |
 | --- | --- |
-| + | **Нова тема** – pravi kopiju odabrane teme i odmah otvara uređivanje boja |
-| Kocka sa + | **Нова насумична тема** – svetla, tamna, ili iz vaše boje (vidi dolje) |
-| Kružna strelica | **Поново генериши** odabranu nasumičnu temu |
-| Dva lista | **Копирај све теме** u klipbord (JSON) |
-| Lepljenje | **Учитај копиране теме** iz klipborda (već postojeće se preskaču) |
+| + | **Nova tema** – pravi kopiju odabrane teme i odmah otvara uređivanje boja |
+| Kocka sa + | **Nova nasumična tema** – svetla, tamna, ili iz vaše boje (vidi dole) |
+| Kružna strelica | **Ponovo generiši** odabranu nasumičnu temu |
+| Dva lista | **Kopiraj sve teme** u klipbord (JSON) |
+| Lepljenje | **Učitaj kopirane teme** iz klipborda (već postojeće se preskaču) |
 
-U uređivaču boja dugme **Врати** vraća jednu boju unazad (čuva se do 300 koraka po temi).
+U uređivaču boja dugme **Vrati** vraća jednu boju unazad (čuva se do 300 koraka po temi).
 
 ## Teme
 
-Ugrađena je jedna tema, **Тамна**, a sve ostale pravite sami. 
+Ugrađena je jedna tema, **Tamna**, a sve ostale pravite sami.
 
 | Grupa | Boje |
 | --- | --- |
-| Позадине | kalendar, meni, knjige i žitija |
-| Календар | neparni dani, okvir današnjeg dana |
-| Текст | kalendar i podmeniji, naslovi/praznici/postovi, oznake verzija (Српски, Црквенословенски), liste knjiga i molitvi, slova na tabovima, linkovi, posjećeni linkovi |
-| Елементи | tabovi, traka mjeseca i godine, klizač |
-| Линије | ispod aktivnog taba, ispod datuma u kalendaru, razdjelnici kalendara i menija, liste molitvi i knjiga |
+| Pozadine | kalendar, meni, knjige i žitija |
+| Kalendar | neparni dani, okvir današnjeg dana |
+| Tekst | kalendar i podmeniji, naslovi/praznici/postovi, oznake verzija (Srpski, Crkvenoslovenski), liste knjiga i molitvi, slova na tabovima, linkovi, posećeni linkovi |
+| Elementi | tabovi, traka meseca i godine, klizač |
+| Linije | ispod aktivnog taba, ispod datuma u kalendaru, razdelnici kalendara i menija, liste molitvi i knjiga |
 
 Tri dodatne boje (statusna traka, akcent prekidača, linije i tabele u knjigama) čuvaju se u temi, ali se ne uređuju.
 
-Pozadina može biti i **svijetla** – tada modul ne pretvara originalne svijetle boje u tamne, nego primjenjuje
+Pozadina može biti i **svetla** – tada modul ne pretvara originalne svetle boje u tamne, nego primenjuje
 vaše.
 
 ### Nasumične teme
 
-Izbor iz menija „Насумична тема“:
+Izbor iz menija „Nasumična tema“:
 
-- **Светла** / **Тамна** – potpuno nasumična tema,
-- **Од моје боје: позадина** – nijansa, zasićenost i svjetlina pozadine dolaze iz vaše boje (ograničene na raspon
+- **Svetla** / **Tamna** – potpuno nasumična tema,
+- **Od moje boje: pozadina** – nijansa, zasićenost i svetlina pozadine dolaze iz vaše boje (ograničene na raspon
   u kojem je čitljivost zagarantovana), ostalo je nasumično,
-- **Од моје боје: позадина и боја празника** – dodatno zadajete boju naslova i praznika.
+- **Od moje boje: pozadina i boja praznika** – dodatno zadajete boju naslova i praznika.
 
-Ako je zadatu boju trebalo prilagoditi radi čitljivosti, dobićete obavještenje. Generisane teme dobijaju
-nazive tipa „boja + imenica“ (npr. *рубинска …*), a rod imenice govori kako je tema nastala (muški – nasumična,
-ženski – iz boje pozadine, srednji – iz boje pozadine i praznika). Zato **Поново генериши** radi samo na
+Ako je zadatu boju trebalo prilagoditi radi čitljivosti, dobićete obaveštenje. Generisane teme dobijaju
+nazive tipa „boja + imenica“ (npr. *rubinska …*), a rod imenice govori kako je tema nastala (muški – nasumična,
+ženski – iz boje pozadine, srednji – iz boje pozadine i praznika). Zato **Ponovo generiši** radi samo na
 temama koje nisu preimenovane.
