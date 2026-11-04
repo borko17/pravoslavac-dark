@@ -15,7 +15,7 @@ android {
 
     defaultConfig {
         // Ime paketa kako ga vidi telefon (LSPosed, instalacija). Java paket i 'namespace' ispod ostaju isti.
-        applicationId 'com.pravoslavac.dark'
+        applicationId 'io.github.borko17.pravoslavac.dark'
         minSdk 21
         //noinspection TargetSdkVersion
         targetSdk 37
