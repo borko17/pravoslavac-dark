@@ -87,11 +87,6 @@ Ugrađena je jedna tema, **Tamna**, a sve ostale pravite sami.
 | Elementi | tabovi, traka meseca i godine, klizač |
 | Linije | ispod aktivnog taba, ispod datuma u kalendaru, razdelnici kalendara i menija, liste molitvi i knjiga |
 
-Tri dodatne boje (statusna traka, akcent prekidača, linije i tabele u knjigama) čuvaju se u temi, ali se ne uređuju.
-
-Pozadina može biti i **svetla** – tada modul ne pretvara originalne svetle boje u tamne, nego primenjuje
-vaše.
-
 ### Nasumične teme
 
 Izbor iz menija „Nasumična tema“:
