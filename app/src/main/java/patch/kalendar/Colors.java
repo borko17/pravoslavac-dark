@@ -51,9 +51,10 @@ final class Colors {
 
     /** Boje koje se ne uređuju u aplikaciji, ali ih tema i dalje ima (ostaju sa vrijednostima iz teme). */
     static final String[][] HIDDEN = {
-            { "c_bar_dark",   "Статусна трака",              "0f1626" },
-            { "c_accent",     "Акцент (прекидачи)",          "6495ed" },
-            { "c_web_line",   "Линије и табеле",             "444444" },
+            { "c_bar_dark",   "Статусна трака",          "0f1626" },
+            { "c_accent",     "Акцент (прекидачи)",      "6495ed" },
+            { "c_web_line",   "Линије и табеле",         "444444" },
+            { "c_web_head2",  "Наслови h5/h6",           "e6e1d6" },
     };
 
     static String def(String key) {

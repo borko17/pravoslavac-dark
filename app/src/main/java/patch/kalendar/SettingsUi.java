@@ -242,20 +242,27 @@ final class SettingsUi {
     /** Back gesta (predictive back) na Androidu 13+. */
     private static final class Back33 {
         static Object register(final Activity a, final SettingsUi s) {
-            OnBackInvokedCallback cb = new OnBackInvokedCallback() {
-                @Override
-                public void onBackInvoked() {
-                    if (s.drawerOpen()) Hook.closeDrawer(a);
-                    else s.close(true);
-                }
-            };
-            a.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
-                    OnBackInvokedDispatcher.PRIORITY_OVERLAY, cb);
+            OnBackInvokedCallback cb = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                cb = new OnBackInvokedCallback() {
+                    @Override
+                    public void onBackInvoked() {
+                        if (s.drawerOpen()) Hook.closeDrawer(a);
+                        else s.close(true);
+                    }
+                };
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                a.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                        OnBackInvokedDispatcher.PRIORITY_OVERLAY, cb);
+            }
             return cb;
         }
 
         static void unregister(Activity a, Object cb) {
-            a.getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback((OnBackInvokedCallback) cb);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                a.getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback((OnBackInvokedCallback) cb);
+            }
         }
     }
 
