@@ -390,7 +390,7 @@ final class SettingsUi {
             root.addView(makeSwitch("Текст поравнат лево", "Уместо обостраног поравнања.",
                     Prefs.KEY_LEFT, true));
             root.addView(makeSwitch("Теме",
-                    "Укључено: Тема у одабраним бојама. Искључено: оригинална боја апликације.",
+                    "Тема у одабраним бојама.",
                     Prefs.KEY_DARK, true));
         } else {
             addThemeSection(root);
@@ -525,7 +525,7 @@ final class SettingsUi {
     }
 
     private void addThemeSection(LinearLayout root) {
-        TextView h = label("Одабери тему (дугме са десне стране = уреди боје, преименуј, обриши)", 14f, dim());
+        TextView h = label("Одабери тему:", 14f, dim());
         h.setPadding(0, dp(8), 0, dp(4));
         root.addView(h);
 
@@ -553,7 +553,7 @@ final class SettingsUi {
             row.addView(rb, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
             // mali pregled teme: pozadina, traka, naslov, link
-            String[] keys = { "c_bg", "c_row", "c_title", "c_web_link" };
+            String[] keys = { "c_bg", "c_row", "c_title", "c_row_border" };
             for (String k : keys) {
                 View dot = new View(act);
                 GradientDrawable circle = new GradientDrawable();
@@ -892,7 +892,7 @@ final class SettingsUi {
     private static final String KEY_LAST_BASE = "last_base_color";
 
     private void randomThemeMenu() {
-        showIconMenu("Насумична тема",
+        showIconMenu("Нова насумична тема",
                 new int[] { Icons.SUN, Icons.MOON, Icons.DROP, Icons.DROP_STAR },
                 new String[] { "Светла", "Тамна", "Од моје боје: позадина",
                         "Од моје боје: позадина и боја празника" },

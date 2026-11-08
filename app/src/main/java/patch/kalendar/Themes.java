@@ -67,7 +67,7 @@ final class Themes {
 
     static List<Theme> builtins() {
         List<Theme> l = new ArrayList<Theme>();
-        l.add(make("orig", "Tamna",
+        l.add(make("orig", "Тамна",
                 "121212", "181818", "121212", "1b1c1e", "7546e1", "e1e6ea", "f07a7d", "97f07f", "cfd7de", "ffffff",
                 "9194f2", "e293e7", "1f2538", "1d1f23", "b02e31", "dd3c3f", "b02e31", "353637", "e93f43"));
         return l;

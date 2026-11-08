@@ -33,7 +33,7 @@ i prikazu teksta.
    `com.pravoslavac`.
 3. Prisilno zaustavite Pravoslavac i pokrenite ga ponovo.
 
-Modul se pojavljuje u LSPosed-u pod nazivom *Pravoslavac Dark*, a paket je `com.pravoslavac.dark`.
+Modul se pojavljuje u LSPosed-u pod nazivom *Pravoslavac Dark*, a paket je `io.github.borko17.pravoslavac.dark`.
 
 ## Podešavanja
 

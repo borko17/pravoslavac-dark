@@ -141,14 +141,14 @@ final class ColorPicker {
         if (title != null) builder.setTitle(title);
         AlertDialog dlg = builder
                 .setView(scroll)
-                .setPositiveButton("U redu", new DialogInterface.OnClickListener() {
+                .setPositiveButton("У реду", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface d, int w) {
                         Integer typed = Colors.parse(hex.getText().toString());
                         listener.onColor(typed != null ? (0xff000000 | typed.intValue()) : Color.HSVToColor(hsv));
                     }
                 })
-                .setNeutralButton("Odustani", null)
+                .setNeutralButton("Одустани", null)
                 .create();
         // tastatura se ne otvara sama; kad se otvori, dijalog se smanji umjesto da prekrije birac
         GradientDrawable bg = new GradientDrawable();

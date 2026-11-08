@@ -28,6 +28,7 @@ final class Colors {
             // Линије
             { "c_tab_line",   "Испод активног таба",                "dd3c3f" },
             { "c_red_bar",    "Испод датума у календару",           "b02e31" },
+            // Разделници
             { "c_divider",    "Календар и мени",                    "353637" },
             { "c_red_line",   "Листе молитви и књига",              "e93f43" },
     };
@@ -38,7 +39,8 @@ final class Colors {
             { "Календар",     "c_row" },
             { "Текст",        "c_text" },
             { "Елементи",     "c_bar" },
-            { "Разделници",  "c_divider" },
+            { "Линије",       "c_tab_line" },
+            { "Разделници",   "c_divider" },
     };
 
     /** Naslov grupe koja pocinje ovom bojom, ili null. */
