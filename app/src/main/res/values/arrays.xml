@@ -3,5 +3,6 @@
     <!-- Aplikacije u kojima se modul preporucuje za aktivaciju u LSPosed-u -->
     <string-array name="xposedscope">
         <item>com.pravoslavac</item>
+        <item>com.zitijesvetih</item>
     </string-array>
 </resources>

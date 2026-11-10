@@ -26,11 +26,38 @@ import de.robv.android.xposed.callbacks.XC_InitPackageResources;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 /**
- * Xposed/LSPosed modul za aplikaciju "Pravoslavac": pocetni ekran je kalendar + tamna tema.
+ * Xposed/LSPosed modul za aplikacije "Pravoslavac" i "Zitije svetih": pocetni ekran je kalendar + tamna tema.
+ * Obje aplikacije dijele isti kod, razlikuju se samo paket i obfuskovani nazivi dvije metode (vidi select()).
  */
 public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResources {
 
-    static final String PKG = "com.pravoslavac";
+    /** Podrzane aplikacije (ista lista je u res/values/arrays.xml, scope za LSPosed). */
+    static final String PKG_PRAVOSLAVAC = "com.pravoslavac";
+    static final String PKG_ZITIJE = "com.zitijesvetih";
+
+    /** Paket aplikacije u cijem je procesu modul ucitan (postavlja select()). */
+    static String PKG = PKG_PRAVOSLAVAC;
+    /** Metoda fragmenta kalendara poslije koje se otvara tekuci mjesec (obfuskovano ime, zavisi od aplikacije). */
+    static String CAL_INIT = "n0";
+    /** Metoda fragmenta kalendara (mjesec, godina) koja prikazuje mjesec u kalendaru (obfuskovano ime). */
+    static String CAL_JUMP = "Y";
+
+    /** Bira podrzanu aplikaciju po imenu paketa; vraca false ako paket nije podrzan. */
+    static boolean select(String pkg) {
+        if (PKG_PRAVOSLAVAC.equals(pkg)) {
+            PKG = pkg;
+            CAL_INIT = "n0";
+            CAL_JUMP = "Y";
+            return true;
+        }
+        if (PKG_ZITIJE.equals(pkg)) {
+            PKG = pkg;
+            CAL_INIT = "p0";
+            CAL_JUMP = "a0";
+            return true;
+        }
+        return false;
+    }
 
     /** Boja krem reda u kalendaru koju aplikacija postavlja kodom (svaki drugi red). */
     static final int LIGHT_ROW = 0xfffbf7ea;
@@ -52,13 +79,13 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
-        if (!PKG.equals(lpparam.packageName)) return;
+        if (!select(lpparam.packageName)) return;
         final ClassLoader cl = lpparam.classLoader;
         Prefs.init(lpparam.appInfo != null ? lpparam.appInfo.dataDir : null);
         Dark.reload();
 
         // Splash: ne prikazuj pocetni ekran, odmah idi na kalendar.
-        hook("com.pravoslavac.Splashscreen", cl, "onCreate", "android.os.Bundle", new XC_MethodHook() {
+        hook(PKG + ".Splashscreen", cl, "onCreate", "android.os.Bundle", new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) {
                 // Pri pokretanju otvori kalendar (tekuci mjesec) umjesto zitija za taj dan.
@@ -88,7 +115,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         });
 
         // Prvi put otvori tekuci mjesec/godinu u kalendaru.
-        hook("com.pravoslavac.SlidingTabsPravoslavniCrkveniKalendar_i_raspored_citanja_Fragment", cl, "n0",
+        hook(PKG + ".SlidingTabsPravoslavniCrkveniKalendar_i_raspored_citanja_Fragment", cl, CAL_INIT,
                 new XC_MethodHook() {
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) {
@@ -97,7 +124,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                             Calendar c = Calendar.getInstance();
                             Integer month = Integer.valueOf(c.get(Calendar.MONTH) + 1);
                             Integer year = Integer.valueOf(c.get(Calendar.YEAR));
-                            XposedHelpers.callMethod(param.thisObject, "Y", new Object[] { month, year });
+                            XposedHelpers.callMethod(param.thisObject, CAL_JUMP, new Object[] { month, year });
                         }
                     }
                 });
@@ -552,7 +579,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
     @Override
     public void handleInitPackageResources(XC_InitPackageResources.InitPackageResourcesParam resparam)
             throws Throwable {
-        if (!PKG.equals(resparam.packageName)) return;
+        if (!select(resparam.packageName)) return;
         RES = resparam.res;
         reapplyResources();
     }
@@ -730,7 +757,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
 
     private static void hookSettingsMenu(final ClassLoader cl) {
         // Dodaj grupu poslije gradnje menija.
-        hook("com.pravoslavac.MainActivity", cl, "onCreate", "android.os.Bundle", new XC_MethodHook() {
+        hook(PKG + ".MainActivity", cl, "onCreate", "android.os.Bundle", new XC_MethodHook() {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
                 try {
@@ -810,7 +837,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                 }
             }
         };
-        hook("com.pravoslavac.MainActivity", cl, "onBackPressed", back);
+        hook(PKG + ".MainActivity", cl, "onBackPressed", back);
         hook("androidx.activity.ComponentActivity", cl, "onBackPressed", back);
         hook("android.app.Activity", cl, "onBackPressed", back);
     }
@@ -826,15 +853,15 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                 c.getMethod("closeDrawers").invoke(d);
                 return;
             } catch (NoSuchMethodException e) {
-                // aplikacija je obfuskirana: closeDrawers() = c(), closeDrawers(boolean) = d(boolean)
+                // aplikacija je obfuskirana: closeDrawers(boolean) = d(boolean), closeDrawers() / closeDrawer(START) = c()
             }
             try {
-                c.getMethod("c").invoke(d);
+                c.getMethod("d", boolean.class).invoke(d, Boolean.FALSE);
                 return;
             } catch (NoSuchMethodException e) {
                 // probaj sljedece
             }
-            c.getMethod("d", boolean.class).invoke(d, Boolean.FALSE);
+            c.getMethod("c").invoke(d);
         } catch (Throwable t) {
             XposedBridge.log(t);
         }

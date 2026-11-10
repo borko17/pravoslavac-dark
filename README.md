@@ -1,10 +1,11 @@
 # Pravoslavac Dark (LSPosed modul)
 
-LSPosed (Xposed) modul za Android aplikaciju **Pravoslavac** (`com.pravoslavac`). Dodaje tamnu temu sa
+LSPosed (Xposed) modul za Android aplikacije **Pravoslavac** (`com.pravoslavac`) i **Житије светих**
+(`com.zitijesvetih`). Za obe aplikacije isti je skup opcija, tema i podešavanja. Dodaje tamnu temu sa
 potpuno prilagodljivim bojama, nasumično generisane teme i nekoliko opcija za ponašanje aplikacije pri pokretanju
 i prikazu teksta.
 
-> Nezvanični modul. Nije povezan sa autorima aplikacije Pravoslavac.
+> Nezvanični modul. Nije povezan sa autorima aplikacija Pravoslavac i Житије светих.
 
 ## Mogućnosti
 
@@ -18,26 +19,27 @@ i prikazu teksta.
 - **Preskakanje uvodnog ekrana** (splash).
 - **Otvaranje kalendara pri pokretanju** (tekući mesec) umesto žitija za tekući dan.
 - **Tekst poravnat levo** umesto obostranog (justified) – u WebView sadržaju i u nativnim `TextView` poljima.
-- Podešavanja su **unutar same aplikacije** Православац; modul nema vlastitu ikonu u launcheru.
+- Podešavanja su **unutar same aplikacije** (Православац, odnosno Житије светих); modul nema vlastitu ikonu u launcheru.
+  Svaka aplikacija ima svoja nezavisna podešavanja i teme.
 
 ## Zahtevi
 
 - Android 5.0+ (`minSdk 21`)
-- Instaliran **Pravoslavac** (`com.pravoslavac`)
+- Instaliran **Pravoslavac** (`com.pravoslavac`) i/ili **Житије светих** (`com.zitijesvetih`, testirano na 1.3.8)
 - **LSPosed** (ili drugi okvir kompatibilan sa Xposed API-jem 93)
 
 ## Instalacija
 
 1. Preuzmite najnoviji `Pravoslavac_Dark_<verzija>.apk` iz sekcije **Releases** i instalirajte ga.
 2. U LSPosed-u otvorite **Moduli**, uključite **Pravoslavac Dark** i u opsegu (scope) označite
-   `com.pravoslavac`.
-3. Prisilno zaustavite Pravoslavac i pokrenite ga ponovo.
+   `com.pravoslavac` i/ili `com.zitijesvetih`.
+3. Prisilno zaustavite aplikaciju i pokrenite je ponovo.
 
 Modul se pojavljuje u LSPosed-u pod nazivom *Pravoslavac Dark*, a paket je `io.github.borko17.pravoslavac.dark`.
 
 ## Podešavanja
 
-U aplikaciji Pravoslavac otvorite bočni meni i izaberite poslednju grupu, **Podešavanja** (ikonica zupčanika).
+U aplikaciji (Pravoslavac ili Житије светих) otvorite bočni meni i izaberite poslednju grupu, **Podešavanja** (ikonica zupčanika).
 Ekran ima dva taba: **Opcije** i **Teme**.
 
 ### Tab Opcije
