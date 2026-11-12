@@ -19,14 +19,14 @@ jobs:
       KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
       KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '9.8.2'
 
@@ -54,7 +54,7 @@ jobs:
       - name: Prikazi potpis APK-a (vlasnik i otisak)
         run: keytool -printcert -jarfile "dist/${APK_NAME}" | head -n 12
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Pravoslavac_Dark
           path: dist/${{ env.APK_NAME }}
