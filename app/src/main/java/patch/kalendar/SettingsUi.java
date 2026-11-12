@@ -560,7 +560,7 @@ final class SettingsUi {
             row.addView(rb, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
             // mali pregled teme: pozadina, traka, naslov, link
-            String[] keys = { "c_bg", "c_row", "c_title", "c_row_border" };
+            String[] keys = { "c_bg", "c_row", "c_holiday", "c_row_border" };
             for (String k : keys) {
                 View dot = new View(act);
                 GradientDrawable circle = new GradientDrawable();
@@ -947,7 +947,7 @@ final class SettingsUi {
                             addRandomTheme(RandomTheme.ANY, Integer.valueOf(base), null, false);
                             return;
                         }
-                        ColorPicker.show(act, sp.getInt(KEY_LAST_HOLIDAY, Dark.TITLE), bg(), text(),
+                        ColorPicker.show(act, sp.getInt(KEY_LAST_HOLIDAY, Dark.HOLIDAY), bg(), text(),
                                 "Боја празника", new ColorPicker.Listener() {
                                     @Override
                                     public void onColor(int holiday) {
@@ -1018,7 +1018,7 @@ final class SettingsUi {
             addRandomTheme(mode, null, null, true);
             return;
         }
-        Integer holiday = gender == NameGen.NEUT ? Integer.valueOf(Colors.parse(cur.color("c_title")).intValue()) : null;
+        Integer holiday = gender == NameGen.NEUT ? Integer.valueOf(Colors.parse(cur.color("c_holiday")).intValue()) : null;
         addRandomTheme(RandomTheme.ANY, Integer.valueOf(bgColor), holiday, true);
     }
 

@@ -61,7 +61,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
 
     /** Boja krem reda u kalendaru koju aplikacija postavlja kodom (svaki drugi red). */
     static final int LIGHT_ROW = 0xfffbf7ea;
-    /** Tamnocrvena boja naslova koju aplikacija postavlja kodom (zamjena: Dark.TITLE). */
+    /** Crvena boja praznika i postova koju aplikacija postavlja kodom (zamjena: Dark.HOLIDAY). */
     static final int DARK_RED = 0xffcc0000;
 
     /** Dubina ugnijezdenih LayoutInflater.inflate poziva (po niti). */
@@ -208,8 +208,8 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         // Pozadine postavljene preko resursa (npr. tablerow_border_neparni_dani).
         hook("android.view.View", cl, "setBackgroundResource", int.class, new OddRowHook());
 
-        // Pozadine / boje teksta koje aplikacija postavlja kodom (parseColor).
-        XC_MethodHook colorHook = new XC_MethodHook() {
+        // Pozadine koje aplikacija postavlja kodom (parseColor).
+        hook("android.view.View", cl, "setBackgroundColor", int.class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) {
                 if (!Prefs.dark()) return;
@@ -217,16 +217,61 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                     int c = ((Integer) param.args[0]).intValue();
                     if (c == LIGHT_ROW) {
                         param.args[0] = Integer.valueOf(Dark.ROW);
-                    } else if (c == DARK_RED) {
-                        param.args[0] = Integer.valueOf(Dark.TITLE);
+                    } else if (Dark.isSunBg(c)) {
+                        // nedeljna traka: svoja boja pozadine i teksta
+                        Dark.markSunday((View) param.thisObject);
+                        param.setResult(null);
                     }
                 } catch (Throwable t) {
                     XposedBridge.log(t);
                 }
             }
-        };
-        hook("android.view.View", cl, "setBackgroundColor", int.class, colorHook);
-        hook("android.widget.TextView", cl, "setTextColor", int.class, colorHook);
+        });
+
+        // Redovi lista poslije izrade (kad se zna u kojoj su listi): bocni meni (meni / podmeni) i liste molitvi i knjiga
+        hook("android.widget.AbsListView", cl, "obtainView", int.class, boolean[].class, new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) {
+                if (!Prefs.dark()) return;
+                try {
+                    Object r = param.getResult();
+                    if (!(r instanceof View)) return;
+                    Object lv = param.thisObject;
+                    if (lv instanceof android.widget.ExpandableListView) {
+                        Dark.styleMenu((View) r, true);
+                        Dark.fixMenuDividers((android.widget.ExpandableListView) lv);
+                    } else if (lv instanceof View && ((View) lv).getTag(Dark.TAG_BOOKLIST) != null) {
+                        Dark.styleBookItem((View) r);
+                    }
+                } catch (Throwable t) {
+                    XposedBridge.log(t);
+                }
+            }
+        });
+
+        // Boje teksta koje aplikacija postavlja kodom (parseColor).
+        hook("android.widget.TextView", cl, "setTextColor", int.class, new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) {
+                if (!Prefs.dark()) return;
+                try {
+                    if (Dark.applying) return;
+                    // nedeljna traka, mjesec i godina, naslov kalendara: boja teksta iz teme, kako god je app postavi
+                    int role = Dark.roleColor((View) param.thisObject);
+                    if (role != 0) {
+                        param.args[0] = Integer.valueOf(role);
+                        return;
+                    }
+                    int c = ((Integer) param.args[0]).intValue();
+                    if (c == DARK_RED) {
+                        ((View) param.thisObject).setTag(Dark.TAG_ORIG, Integer.valueOf(c));
+                        param.args[0] = Integer.valueOf(Dark.HOLIDAY);
+                    }
+                } catch (Throwable t) {
+                    XposedBridge.log(t);
+                }
+            }
+        });
 
         hookText(cl);
         hookCss(cl);
@@ -342,6 +387,10 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                     Object r = param.getResult();
                     if (r instanceof View) {
                         Dark.walk((View) r);
+                        // red menija koji se pravi za bocni meni (i kad se crta samo tokom animacije otvaranja)
+                        if (param.args.length > 1 && param.args[1] instanceof android.widget.ExpandableListView) {
+                            Dark.styleMenu((View) r, false);
+                        }
                     }
                 }
             }
@@ -360,7 +409,8 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                         try {
                             Object o = param.args[0];
                             if (o instanceof CharSequence) {
-                                param.args[0] = Dark.fixSpans((CharSequence) o);
+                                param.args[0] = Dark.fixText((android.widget.TextView) param.thisObject,
+                                        (CharSequence) o);
                             }
                         } catch (Throwable t) {
                             XposedBridge.log(t);
@@ -733,6 +783,20 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
     private static synchronized void hookGroupIcon(Class<?> adapterClass) {
         if (groupIconHooked) return;
         groupIconHooked = true;
+        // redovi koje adapter pravi (i oni koji se crtaju samo tokom animacije otvaranja podmenija): "Tekst podmenija 1"
+        XC_MethodHook menuRowHook = new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) {
+                Object r = param.getResult();
+                if (r instanceof View) Dark.styleMenu((View) r, false);
+            }
+        };
+        for (Class<?> c = adapterClass; c != null && c != Object.class && !c.getName().startsWith("android.");
+                c = c.getSuperclass()) {
+            XposedBridge.hookAllMethods(c, "getRealChildView", menuRowHook);
+            XposedBridge.hookAllMethods(c, "getChildView", menuRowHook);
+            XposedBridge.hookAllMethods(c, "getGroupView", menuRowHook);
+        }
         XposedBridge.hookAllMethods(adapterClass, "getGroupView", new XC_MethodHook() {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {

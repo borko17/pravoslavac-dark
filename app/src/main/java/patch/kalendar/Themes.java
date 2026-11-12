@@ -41,6 +41,17 @@ final class Themes {
                         + 0.587 * ((b.intValue() >> 8) & 255) + 0.114 * (b.intValue() & 255)) / 255.0;
                 return lum >= 0.5 ? "008000" : "77f877";
             }
+            // nove boje kalendara: starije teme dobijaju boje koje se uklapaju u njih (kontrast je vec provjeren)
+            if ("c_holiday".equals(key) || "c_menu_text".equals(key)) return color("c_title");
+            if ("c_menu_divider".equals(key)) return color("c_divider");
+            if ("c_cal_title_line".equals(key)) return color("c_bg");
+            if ("c_sub_text1".equals(key)) return color("c_sub_text");
+            if ("c_sub_text".equals(key)) return color("c_text");
+            if ("c_sun_bg".equals(key)) return color("c_row");
+            if ("c_cal_title_bg".equals(key)) return color("c_bg");
+            if ("c_sun_text".equals(key) || "c_month_text".equals(key) || "c_cal_title_text".equals(key)) {
+                return color("c_title");
+            }
             return Colors.def(key);
         }
 
@@ -59,9 +70,25 @@ final class Themes {
             "c_tab_text", "c_web_link", "c_web_visited", "c_bar", "c_month_bar", "c_scroll", "c_tab_line",
             "c_red_bar", "c_divider", "c_red_line" };
 
+    /** Boje kalendara koje svaka tema ima kao zasebne vrijednosti (ne prate druge boje). */
+    private static final String[] CAL_KEYS = { "c_sun_bg", "c_sun_text", "c_month_text", "c_cal_title_bg",
+            "c_cal_title_text", "c_holiday", "c_sub_text", "c_menu_text",
+            "c_menu_divider", "c_cal_title_line", "c_sub_text1" };
+
+    /**
+     * Starije teme (sacuvane prije ovih boja) dobijaju zasebne vrijednosti: jednom se uzmu iz boja uklopljenih u
+     * temu, pa se poslije mogu mijenjati nezavisno od njih.
+     */
+    private static void materialize(Theme t) {
+        for (String k : CAL_KEYS) {
+            if (!t.colors.containsKey(k)) t.colors.put(k, t.color(k));
+        }
+    }
+
     private static Theme make(String id, String name, String... hex) {
         Theme t = new Theme(id, name);
         for (int i = 0; i < ORDER.length; i++) t.colors.put(ORDER[i], hex[i]);
+        for (String k : CAL_KEYS) t.colors.put(k, Colors.def(k));
         return t;
     }
 
@@ -98,6 +125,7 @@ final class Themes {
                             if (v != null) t.colors.put(k, Colors.hex(v.intValue()));
                         }
                     }
+                    materialize(t);
                     out.add(t);
                 }
             } catch (Throwable e) {
@@ -131,7 +159,10 @@ final class Themes {
                     Integer v = Colors.parse(c.optString(k, null));
                     if (v != null) t.colors.put(k, Colors.hex(v.intValue()));
                 }
-                if (!t.colors.isEmpty()) out.add(t);
+                if (!t.colors.isEmpty()) {
+                    materialize(t);
+                    out.add(t);
+                }
             }
         } catch (Throwable e) {
             return null;

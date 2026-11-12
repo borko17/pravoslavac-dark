@@ -56,7 +56,7 @@ final class RandomTheme {
     }
 
     /**
-     * Uz zadatu osnovnu boju moze se zadati i boja praznika (holidayColor): naslovi i praznici (c_title) dobijaju
+     * Uz zadatu osnovnu boju moze se zadati i boja praznika (holidayColor): praznici i postovi (c_holiday) dobijaju
      * njenu nijansu i zasicenost, a svjetlina se podesava samo koliko je potrebno radi kontrasta. Ostalo je nasumicno.
      */
     static Result generate(Random r, int mode, Integer base, Integer holidayColor) {
@@ -127,15 +127,18 @@ final class RandomTheme {
         int text = fit(h0, ts, light ? 0.12f : 0.90f, dir, MIN_TEXT, surfaces);
         int webText = fit(h0, ts, light ? 0.17f : 0.84f, dir, MIN_WEB_TEXT, webBg, surface);
         int head2 = fit(h0, ts, light ? 0.10f : 0.92f, dir, MIN_TEXT, webBg);
-        int title;
+        int holiday;
         boolean adjustedHoliday = false;
         if (hh != null) {
             // boja praznika: svjetlina se mijenja samo koliko treba da kontrast bude dovoljan
-            title = fit(hh[0], hh[1], hh[2], dir, MIN_TITLE, surfaces);
-            adjustedHoliday = Math.abs(rgbToHsl(title)[2] - hh[2]) > 0.03f;
+            holiday = fit(hh[0], hh[1], hh[2], dir, MIN_TITLE, surfaces);
+            adjustedHoliday = Math.abs(rgbToHsl(holiday)[2] - hh[2]) > 0.03f;
         } else {
-            title = fit(ht, as, light ? 0.32f : 0.70f, dir, MIN_TITLE, surfaces);
+            holiday = fit(ht, as, light ? 0.32f : 0.70f, dir, MIN_TITLE, surfaces);
         }
+        // naslovi: vlastita nijansa u blizini nijanse praznika
+        int title = fit(ht + (r.nextFloat() - 0.5f) * 60f, as * 0.9f, light ? 0.28f : 0.74f, dir, MIN_TITLE,
+                surfaces);
         int link = fit(hl, as, light ? 0.32f : 0.72f, dir, MIN_LINK, webBg, surface);
         int visited = fit(hv, as * 0.8f, light ? 0.34f : 0.74f, dir, MIN_VISITED, webBg, surface);
         // ozname verzija (СРПСКИ, ЦРКВЕНОСЛОВЕНСКИ…) su u knjigama zelene: nijansa ostaje oko zelene
@@ -190,6 +193,29 @@ final class RandomTheme {
             tabLine = hsl(ht, 0.7f, tl);
         }
 
+        // ---- trake kalendara: nedelja, mjesec i godina, naslov ispod mjeseca (svaka ima vlastitu pozadinu i tekst)
+        // pozadine se razlikuju od pozadine, neparnih dana i trake mjeseca; tekst ima kontrast prema svojoj pozadini
+        int sunBg = hsl(h0 - 14f + r.nextFloat() * 28f, Math.min(1f, bgS + 0.06f + r.nextFloat() * 0.08f),
+                light ? bgL - 0.09f - r.nextFloat() * 0.03f : bgL + 0.08f + r.nextFloat() * 0.03f);
+        int sunText = fit(ht + (r.nextFloat() - 0.5f) * 50f, as, light ? 0.30f : 0.74f, dir, MIN_TITLE, sunBg);
+        int monthText = fit(ht + (r.nextFloat() - 0.5f) * 50f, as, light ? 0.30f : 0.74f, dir, MIN_TITLE, month);
+        int calTitleBg = hsl(h0 - 14f + r.nextFloat() * 28f, Math.min(1f, bgS + 0.02f + r.nextFloat() * 0.06f),
+                light ? bgL - 0.025f - r.nextFloat() * 0.025f : bgL + 0.02f + r.nextFloat() * 0.025f);
+        int calTitleText = fit(ht + (r.nextFloat() - 0.5f) * 50f, as, light ? 0.30f : 0.74f, dir, MIN_TITLE,
+                calTitleBg);
+
+        // tekst podmenija (bocni meni je na boji "surface")
+        int subText = fit(h0 - 20f + r.nextFloat() * 40f, ts, light ? 0.15f : 0.85f, dir, MIN_TEXT, surface);
+
+        // tekst menija (nazivi grupa): vlastita nijansa u blizini nijanse praznika, kontrast prema pozadini menija
+        int menuText = fit(ht + (r.nextFloat() - 0.5f) * 60f, as * 0.9f, light ? 0.28f : 0.76f, dir, MIN_TITLE,
+                surface);
+
+        int subText1 = fit(h0 - 20f + r.nextFloat() * 40f, ts, light ? 0.15f : 0.85f, dir, MIN_TEXT, surface);
+        // razdjelnik menija (na pozadini menija) i linije oko naslova ispod mjeseca (vidljive na pozadini kalendara)
+        int menuDivider = blendUntil(surface, text, 0.15f, 1.35, bg, surface, row);
+        int titleLine = blendUntil(bg, text, 0.25f, 1.6, bg, surface, row);
+
         Map<String, String> m = new LinkedHashMap<String, String>();
         put(m, "c_bg", bg);
         put(m, "c_surface", surface);
@@ -198,6 +224,10 @@ final class RandomTheme {
         put(m, "c_row_border", rowBorder);
         put(m, "c_text", text);
         put(m, "c_title", title);
+        put(m, "c_holiday", holiday);
+        put(m, "c_sub_text", subText);
+        put(m, "c_sub_text1", subText1);
+        put(m, "c_menu_text", menuText);
         put(m, "c_web_text", webText);
         put(m, "c_tab_text", tabText);
         put(m, "c_web_link", link);
@@ -208,8 +238,15 @@ final class RandomTheme {
         put(m, "c_month_bar", month);
         put(m, "c_scroll", scroll);
         put(m, "c_divider", divider);
+        put(m, "c_menu_divider", menuDivider);
+        put(m, "c_cal_title_line", titleLine);
         put(m, "c_red_bar", redBar);
         put(m, "c_red_line", redLine);
+        put(m, "c_sun_bg", sunBg);
+        put(m, "c_sun_text", sunText);
+        put(m, "c_month_text", monthText);
+        put(m, "c_cal_title_bg", calTitleBg);
+        put(m, "c_cal_title_text", calTitleText);
         put(m, "c_bar_dark", barDark);
         put(m, "c_accent", accent);
         put(m, "c_web_head2", head2);
