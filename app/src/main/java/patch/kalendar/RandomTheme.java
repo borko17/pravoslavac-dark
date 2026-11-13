@@ -216,6 +216,16 @@ final class RandomTheme {
         int menuDivider = blendUntil(surface, text, 0.15f, 1.35, bg, surface, row);
         int titleLine = blendUntil(bg, text, 0.25f, 1.6, bg, surface, row);
 
+        // dugmad (претходно / календар / следеће): srednje tamna boja iz nijanse praznika, tekst bijel ili crn prema kontrastu
+        int btnBg = hsl(ht, Math.min(1f, as), light ? 0.40f : 0.36f);
+        int tw = hsl(ht, 0.15f, 0.97f);
+        int tb = hsl(ht, 0.15f, 0.07f);
+        int btnText = minContrast(tw, btnBg) >= minContrast(tb, btnBg) ? tw : tb;
+        int btnBorder = mix(btnBg, btnText, 0.45f);
+        // strelice za mjesece (na traci mjeseca) i ikonica kalendara (nijansa)
+        int arrows = fit(ht + (r.nextFloat() - 0.5f) * 40f, as * 0.8f, light ? 0.28f : 0.80f, dir, MIN_TITLE, month);
+        int calIcon = hsl(ht + (r.nextFloat() - 0.5f) * 40f, 0.6f, 0.55f);
+
         Map<String, String> m = new LinkedHashMap<String, String>();
         put(m, "c_bg", bg);
         put(m, "c_surface", surface);
@@ -227,6 +237,11 @@ final class RandomTheme {
         put(m, "c_holiday", holiday);
         put(m, "c_sub_text", subText);
         put(m, "c_sub_text1", subText1);
+        put(m, "c_btn_bg", btnBg);
+        put(m, "c_btn_text", btnText);
+        put(m, "c_btn_border", btnBorder);
+        put(m, "c_arrows", arrows);
+        put(m, "c_cal_icon", calIcon);
         put(m, "c_menu_text", menuText);
         put(m, "c_web_text", webText);
         put(m, "c_tab_text", tabText);

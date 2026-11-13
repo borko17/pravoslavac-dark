@@ -16,6 +16,7 @@ import android.text.style.ForegroundColorSpan;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -42,6 +43,11 @@ final class Dark {
     static int SUB_TEXT = 0xffd5dbe0;
     static int MENU_TEXT = 0xfff58f92;
     static int SUB_TEXT1 = 0xffd5dbe0;
+    static int BTN_BG = 0xffb02e31;
+    static int BTN_TEXT = 0xffffffff;
+    static int BTN_BORDER = 0xffe99a96;
+    static int ARROWS = 0xffffffff;
+    static int CAL_ICON = 0xff3d8fd1;
     static int MENU_DIVIDER = 0xff353637;
     static int CAL_TITLE_LINE = 0xff2e3034;
     static int RED_BAR = 0xff8b0000;
@@ -79,6 +85,11 @@ final class Dark {
         SUB_TEXT = Prefs.color("c_sub_text");
         MENU_TEXT = Prefs.color("c_menu_text");
         SUB_TEXT1 = Prefs.color("c_sub_text1");
+        BTN_BG = Prefs.color("c_btn_bg");
+        BTN_TEXT = Prefs.color("c_btn_text");
+        BTN_BORDER = Prefs.color("c_btn_border");
+        ARROWS = Prefs.color("c_arrows");
+        CAL_ICON = Prefs.color("c_cal_icon");
         MENU_DIVIDER = Prefs.color("c_menu_divider");
         CAL_TITLE_LINE = Prefs.color("c_cal_title_line");
         RED_BAR = Prefs.color("c_red_bar");
@@ -720,6 +731,101 @@ final class Dark {
         }
     }
 
+    // ------------------------------------------------------------------ strelice i ikonica u traci mjeseca
+
+    private static final int TAG_IMGKIND = 0x7e0c0a0a;
+    private static final float ICON_HUE = 207f;     // nijansa originalne ikonice kalendara (plava)
+
+    private static boolean inMonthBar(View v) {
+        View p = v;
+        for (int i = 0; i < 6 && p != null; i++) {
+            if (isMonthBarId(p)) return true;
+            Object par = p.getParent();
+            p = par instanceof View ? (View) par : null;
+        }
+        return false;
+    }
+
+    /** Udio zasicenih (sarenih) piksela drawable-a: ikonica kalendara je sarena, strelice su bijele/sive. */
+    private static float colorfulness(Drawable d) {
+        try {
+            Rect old = d.copyBounds();
+            Bitmap bm = Bitmap.createBitmap(48, 48, Bitmap.Config.ARGB_8888);
+            Canvas cv = new Canvas(bm);
+            d.setBounds(0, 0, 48, 48);
+            d.draw(cv);
+            d.setBounds(old);
+            int opaque = 0;
+            int colorful = 0;
+            for (int y = 0; y < 48; y++) {
+                for (int x = 0; x < 48; x++) {
+                    int px = bm.getPixel(x, y);
+                    if ((px >>> 24) < 128) continue;
+                    opaque++;
+                    int r = Color_r(px);
+                    int g = Color_g(px);
+                    int b = Color_b(px);
+                    int mx = Math.max(r, Math.max(g, b));
+                    int mn = Math.min(r, Math.min(g, b));
+                    if (mx > 60 && (mx - mn) / (float) mx > 0.3f) colorful++;
+                }
+            }
+            bm.recycle();
+            return opaque == 0 ? 0f : colorful / (float) opaque;
+        } catch (Throwable t) {
+            return 0f;
+        }
+    }
+
+    /** Pomjeranje nijanse (hue rotate) ikonice prema izabranoj boji; siva boja daje crno-bijelu ikonicu. */
+    private static android.graphics.ColorFilter iconFilter() {
+        float[] hsl = toHsl(CAL_ICON);
+        ColorMatrix cm = new ColorMatrix();
+        if (hsl[1] < 0.12f) {
+            cm.setSaturation(0f);
+            return new ColorMatrixColorFilter(cm);
+        }
+        float rot = hsl[0] - ICON_HUE;
+        if (Math.abs(rot) < 1f) return null;
+        double a = Math.toRadians(rot);
+        float c = (float) Math.cos(a);
+        float s = (float) Math.sin(a);
+        cm.set(new float[] {
+                0.213f + 0.787f * c - 0.213f * s, 0.715f - 0.715f * c - 0.715f * s, 0.072f - 0.072f * c + 0.928f * s, 0, 0,
+                0.213f - 0.213f * c + 0.143f * s, 0.715f + 0.285f * c + 0.140f * s, 0.072f - 0.072f * c - 0.283f * s, 0, 0,
+                0.213f - 0.213f * c - 0.787f * s, 0.715f - 0.715f * c + 0.715f * s, 0.072f + 0.928f * c + 0.072f * s, 0, 0,
+                0, 0, 0, 1, 0 });
+        return new ColorMatrixColorFilter(cm);
+    }
+
+    /** Strelice (prethodni / sljedeci mjesec) i ikonica kalendara u traci mjeseca. */
+    static void styleMonthImage(ImageView iv) {
+        try {
+            if (!inMonthBar(iv)) return;
+            Drawable d = iv.getDrawable();
+            if (d == null) return;
+            Object k = iv.getTag(TAG_IMGKIND);
+            if (k == null) {
+                k = colorfulness(d) > 0.08f ? "icon" : "arrow";
+                iv.setTag(TAG_IMGKIND, k);
+            }
+            if ("icon".equals(k)) {
+                android.graphics.ColorFilter f = iconFilter();
+                if (f == null) iv.clearColorFilter(); else iv.setColorFilter(f);
+            } else {
+                iv.setColorFilter(ARROWS, android.graphics.PorterDuff.Mode.SRC_IN);
+            }
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
+    }
+
+    /** Nova slika u ImageView-u: ponovo odredi da li je strelica ili ikonica. */
+    static void onImageChanged(ImageView iv) {
+        iv.setTag(TAG_IMGKIND, null);
+        styleMonthImage(iv);
+    }
+
     private static boolean isMonthBar(View v) {
         return isMonthBarId(v);
     }
@@ -793,6 +899,7 @@ final class Dark {
             }
             setTabIndicator(v);
         }
+        if (v instanceof ImageView) styleMonthImage((ImageView) v);
         if (v instanceof TextView) {
             TextView tv = (TextView) v;
             int role = roleColor(tv);

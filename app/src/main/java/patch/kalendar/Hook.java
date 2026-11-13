@@ -249,6 +249,21 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
             }
         });
 
+        // Slike u traci mjeseca (strelice, ikonica kalendara) koje aplikacija postavlja kodom
+        XC_MethodHook imgHook = new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) {
+                if (!Prefs.dark()) return;
+                try {
+                    Dark.onImageChanged((android.widget.ImageView) param.thisObject);
+                } catch (Throwable t) {
+                    XposedBridge.log(t);
+                }
+            }
+        };
+        hook("android.widget.ImageView", cl, "setImageDrawable", android.graphics.drawable.Drawable.class, imgHook);
+        hook("android.widget.ImageView", cl, "setImageResource", int.class, imgHook);
+
         // Boje teksta koje aplikacija postavlja kodom (parseColor).
         hook("android.widget.TextView", cl, "setTextColor", int.class, new XC_MethodHook() {
             @Override
@@ -286,17 +301,34 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         });
     }
 
-    /** Skriva WebView (providno) dok se ne primijene tema/poravnanje; sigurnosni tajmer ga uvijek vraca. */
+    private static final int TAG_HIDE = 0x7e0c0b01;   // rezervni tajmer koji vraca providnost
+    private static final int TAG_GEN = 0x7e0c0b02;    // redni broj ucitavanja stranice u ovom WebView-u
+
+    static int generation(WebView wv) {
+        Object g = wv.getTag(TAG_GEN);
+        return g instanceof Integer ? ((Integer) g).intValue() : 0;
+    }
+
+    /**
+     * Skriva WebView (providno) dok se ne primijene tema/poravnanje. Rezervni tajmer vraca prikaz poslije 1.5 s, ali se
+     * pri svakom novom ucitavanju stari tajmer ponistava: inace tajmer sa prethodne stranice otkrije novu stranicu
+     * prije nego sto je obojena (bljesak originalnih boja pri brzom prelistavanju).
+     */
     static void hideWebView(final WebView wv) {
         if (!Prefs.dark() && !Prefs.left()) return;
         try {
+            Object old = wv.getTag(TAG_HIDE);
+            if (old instanceof Runnable) wv.removeCallbacks((Runnable) old);
+            wv.setTag(TAG_GEN, Integer.valueOf(generation(wv) + 1));
             wv.setAlpha(0f);
-            wv.postDelayed(new Runnable() {
+            Runnable r = new Runnable() {
                 @Override
                 public void run() {
                     wv.setAlpha(1f);
                 }
-            }, 1500);
+            };
+            wv.setTag(TAG_HIDE, r);
+            wv.postDelayed(r, 1500);
         } catch (Throwable t) {
             XposedBridge.log(t);
         }
@@ -305,14 +337,15 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
     /**
      * Prikazuje WebView tek kad je iscrtano stanje stranice poslije JS-a (tema, poravnanje). Bez toga se
      * na jedan frejm pokaze stari (svijetli) sadrzaj koji je ostao iscrtan dok je WebView bio skriven.
+     * gen: redni broj ucitavanja za koje se prikaz trazi; ako je u medjuvremenu poceo novo ucitavanje, ne radi nista.
      */
-    static void revealAfterDraw(final WebView wv) {
+    static void revealAfterDraw(final WebView wv, final int gen) {
         try {
             if (android.os.Build.VERSION.SDK_INT >= 23) {
                 wv.postVisualStateCallback(System.nanoTime(), new WebView.VisualStateCallback() {
                     @Override
                     public void onComplete(long requestId) {
-                        showWebView(wv);
+                        if (generation(wv) == gen) showWebView(wv);
                     }
                 });
                 return;
@@ -323,13 +356,15 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         wv.postDelayed(new Runnable() {
             @Override
             public void run() {
-                showWebView(wv);
+                if (generation(wv) == gen) showWebView(wv);
             }
         }, 80);
     }
 
     static void showWebView(WebView wv) {
         try {
+            Object old = wv.getTag(TAG_HIDE);
+            if (old instanceof Runnable) wv.removeCallbacks((Runnable) old);
             wv.setAlpha(1f);
         } catch (Throwable t) {
             XposedBridge.log(t);
@@ -431,10 +466,11 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         protected void afterHookedMethod(MethodHookParam param) {
             final WebView wv = (WebView) param.args[0];
             try {
+                final int gen = generation(wv);
                 final android.webkit.ValueCallback<String> reveal = new android.webkit.ValueCallback<String>() {
                     @Override
                     public void onReceiveValue(String v) {
-                        revealAfterDraw(wv);
+                        revealAfterDraw(wv, gen);
                     }
                 };
                 if (Prefs.left()) wv.evaluateJavascript(Assets.JUSTIFY_JS, null);
@@ -522,6 +558,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         if (Prefs.left()) css.append(Assets.LEFT_CSS);
         if (Prefs.dark()) css.append(Assets.darkCss());
         String tag = "<style id=\"__dkcss0\">" + css + "</style>";
+        if (Prefs.dark()) tag += "<script>" + Assets.navJs() + "</script>";
         java.util.regex.Matcher he = java.util.regex.Pattern.compile("(?i)</head>").matcher(s);
         int at;
         if (he.find()) {

@@ -21,12 +21,53 @@ final class Assets {
                 + "hr{border-color:" + hex(Dark.WEB_LINE) + " !important;color:" + hex(Dark.WEB_LINE) + " !important;background-color:" + hex(Dark.WEB_LINE) + "}\n"
                 + "table,td,th{border-color:" + hex(Dark.WEB_LINE) + "}\n"
                 + "input,select,textarea,button{background:" + hex(Dark.SURFACE) + ";color:" + hex(Dark.WEB_TEXT) + ";border-color:" + hex(Dark.WEB_LINE) + "}\n"
+                + "[data-dkb][data-dkb][data-dkb],[data-dkb][data-dkb][data-dkb]:link,[data-dkb][data-dkb][data-dkb]:visited,[data-dkb][data-dkb][data-dkb]:hover,[data-dkb][data-dkb][data-dkb]:active,[data-dkb][data-dkb][data-dkb]:focus{background:" + hex(Dark.BTN_BG) + " !important;background-image:none !important;color:" + hex(Dark.BTN_TEXT) + " !important;border-color:" + hex(Dark.BTN_BORDER) + " !important;outline-color:" + hex(Dark.BTN_BORDER) + " !important;text-shadow:none !important}\n"
+                + "[data-dkb][data-dkb] *{color:" + hex(Dark.BTN_TEXT) + " !important}\n"
                 + "::-webkit-scrollbar-track{-webkit-box-shadow:inset 0 0 3px rgba(0,0,0," + (Dark.light() ? ".25" : ".8") + ")}\n";
+    }
+
+    /** Pretvara tekst u \\uXXXX znakove (ASCII), da se moze ubaciti u stranicu bilo kojeg kodiranja. */
+    private static String u(String s) {
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c < 128) b.append(c); else b.append(String.format("\\u%04x", (int) c));
+        }
+        return b.toString();
+    }
+
+    /** Zajednicki dio skripti: prepoznavanje i bojenje dugmadi "претходно / календар / следеће". */
+    private static final String NAV_CORE =
+            "var W=['@W0@','@W1@','@W2@','@W3@'];"
+            + "function isNav(e){try{if(e.nodeType!==1)return false;if(e.children&&e.children.length>3)return false;var r=(e.value||e.textContent||'');if(r.length>400)return false;var b=/[<>\\[\\]\\u00ab\\u00bb]/.test(r);var t=r.replace(/[<>\\[\\]\\u00ab\\u00bb]/g,'').replace(/\\s+/g,' ').trim().toLowerCase();if(t===W[0]||t===W[1]||t===W[3])return true;if(t===W[2]&&b)return true;}catch(x){}return false;}"
+            + "function mark(e){try{e.setAttribute('data-dkb','1');var s=e.style;s.setProperty('background-color','@BTNBG@','important');s.setProperty('background-image','none','important');s.setProperty('color','@BTNTEXT@','important');s.setProperty('border-color','@BTNBORDER@','important');s.setProperty('outline-color','@BTNBORDER@','important');}catch(x){}}"
+            + "function scan(r){try{if(!r||r.nodeType!==1)return;if(isNav(r)){mark(r);return;}var l=r.querySelectorAll('a,button,input,span');for(var i=0;i<l.length;i++)if(isNav(l[i]))mark(l[i]);}catch(x){}}"
+            + "var markNav=scan;";
+
+    private static String navCore() {
+        return NAV_CORE.replace("@W0@", u("претходно")).replace("@W1@", u("предходно")).replace("@W2@", u("календар"))
+                .replace("@W3@", u("следеће")).replace("@BTNBG@", hex(Dark.BTN_BG))
+                .replace("@BTNTEXT@", hex(Dark.BTN_TEXT)).replace("@BTNBORDER@", hex(Dark.BTN_BORDER));
+    }
+
+    private static final String NAV_OBSERVER =
+            "function text(n){var p=n.parentNode;for(var k=0;k<3&&p&&p.nodeType===1;k++,p=p.parentNode)if(isNav(p))mark(p);}"
+            + "try{new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){var m=ms[i];if(m.type==='characterData'){text(m.target);continue;}var a=m.addedNodes;for(var j=0;j<a.length;j++){var n=a[j];if(n.nodeType===1)scan(n);else if(n.nodeType===3)text(n);}}}).observe(document,{childList:true,subtree:true,characterData:true});}catch(x){}"
+            + "document.addEventListener('DOMContentLoaded',function(){scan(document.documentElement);});"
+            + "window.addEventListener('load',function(){scan(document.documentElement);});"
+            + "var dl=[60,250,700,1500,3000];for(var q=0;q<dl.length;q++)setTimeout(function(){scan(document.documentElement);},dl[q]);";
+
+    /**
+     * Skripta ubacena u zaglavlje .html stranica: dugmad dobiju oznaku data-dkb cim se pojave u stranici (prije prvog
+     * iscrtavanja), pa nema perioda u kome su u originalnim (crvenim) bojama; ponovni pregled hvata kasnije promjene.
+     */
+    static String navJs() {
+        return "(function(){" + navCore() + NAV_OBSERVER + "})();";
     }
 
     static String darkJs() {
         String css = darkCss().replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n");
-        return DARK_JS.replace("@TEXT@", hex(Dark.WEB_TEXT)).replace("@TITLE@", hex(Dark.TITLE)).replace("@MARK@", hex(Dark.WEB_MARK))
+        return DARK_JS.replace("@NAVCORE@", navCore()).replace("@TEXT@", hex(Dark.WEB_TEXT)).replace("@TITLE@", hex(Dark.TITLE)).replace("@MARK@", hex(Dark.WEB_MARK))
                 .replace("@BG@", hex(Dark.WEB_BG)).replace("@LIGHT@", Dark.light() ? "true" : "false")
                 .replace("@CSS@", css);
     }
@@ -59,8 +100,11 @@ final class Assets {
                     + "    if(LIGHT)return'@BG@';\n"
                     + "    return hsl(x[0],x[1]*0.35,0.07+(1-x[2])*0.45);\n"
                     + "  }\n"
+                    + "  @NAVCORE@\n"
                     + "  function fix(e){\n"
                     + "    if(e.nodeType!==1||SKIP[e.tagName.toUpperCase()])return;\n"
+                    + "    var tn=e.tagName.toUpperCase();\n"
+                    + "    if((tn==='A'||tn==='BUTTON'||tn==='INPUT'||tn==='SPAN'||tn==='DIV')&&isNav(e)){mark(e);return;}\n"
                     + "    var cs=getComputedStyle(e),c=parse(cs.color),b=parse(cs.backgroundColor),v;\n"
                     + "    if(c&&(v=fgMap(c)))e.style.setProperty('color',v,'important');\n"
                     + "    if(e===document.body||e===document.documentElement){e.style.setProperty('background-color','@BG@','important');e.style.setProperty('background-image','none','important');}\n"
@@ -81,7 +125,7 @@ final class Assets {
                     + "  try{\n"
                     + "    var q=[],t=null;\n"
                     + "    var mo=new MutationObserver(function(ms){\n"
-                    + "      for(var i=0;i<ms.length;i++){var n=ms[i].addedNodes;for(var j=0;j<n.length;j++)if(n[j].nodeType===1)q.push(n[j]);}\n"
+                    + "      for(var i=0;i<ms.length;i++){var n=ms[i].addedNodes;for(var j=0;j<n.length;j++)if(n[j].nodeType===1){markNav(n[j]);q.push(n[j]);}}\n"
                     + "      if(q.length&&!t)t=setTimeout(function(){var l=q;q=[];t=null;for(var k=0;k<l.length;k++)run(l[k]);},40);\n"
                     + "    });\n"
                     + "    mo.observe(document.documentElement,{childList:true,subtree:true});\n"
