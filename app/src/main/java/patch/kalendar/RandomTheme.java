@@ -226,6 +226,11 @@ final class RandomTheme {
         int arrows = fit(ht + (r.nextFloat() - 0.5f) * 40f, as * 0.8f, light ? 0.28f : 0.80f, dir, MIN_TITLE, month);
         int calIcon = hsl(ht + (r.nextFloat() - 0.5f) * 40f, 0.6f, 0.55f);
 
+        // gornja traka (naslov aplikacije); u svijetloj temi je boja trake kao i do sada
+        int toolbar = light ? bar : hsl(h0, Math.min(1f, bgS + 0.02f), bgL + 0.075f);
+        // boja dodirnute strelice: primjetno svjetlija od trake mjeseca
+        int arrowPressed = mix(month, arrows, 0.30f);
+
         Map<String, String> m = new LinkedHashMap<String, String>();
         put(m, "c_bg", bg);
         put(m, "c_surface", surface);
@@ -242,6 +247,8 @@ final class RandomTheme {
         put(m, "c_btn_border", btnBorder);
         put(m, "c_arrows", arrows);
         put(m, "c_cal_icon", calIcon);
+        put(m, "c_toolbar", toolbar);
+        put(m, "c_arrow_pressed", arrowPressed);
         put(m, "c_menu_text", menuText);
         put(m, "c_web_text", webText);
         put(m, "c_tab_text", tabText);

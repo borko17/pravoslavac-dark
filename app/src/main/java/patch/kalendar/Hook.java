@@ -689,7 +689,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         rc(res, "textcolormain", Dark.TEXT);
         rc(res, "background_material_light", Dark.BG); // svijetla pozadina prozora iz AppCompat teme
         rc(res, "background_floating_material_light", Dark.SURFACE);
-        rc(res, "my_color_light", Dark.ACCENT); // pritisnuto stanje dugmadi (mybuttonselector)
+        rc(res, "my_color_light", Dark.ARROW_PRESSED); // pritisnuto stanje dugmadi / strelica (mybuttonselector)
 
         try {
             // pozadina "papir"

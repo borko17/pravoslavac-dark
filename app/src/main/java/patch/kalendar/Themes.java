@@ -43,6 +43,11 @@ final class Themes {
             }
             // nove boje kalendara: starije teme dobijaju boje koje se uklapaju u njih (kontrast je vec provjeren)
             if ("c_holiday".equals(key) || "c_menu_text".equals(key)) return color("c_title");
+            if ("c_arrow_pressed".equals(key)) return color("c_accent");
+            if ("c_toolbar".equals(key)) {
+                Integer bg = Colors.parse(color("c_bg"));
+                return Dark.lum(bg == null ? 0 : bg.intValue()) > 0.5f ? color("c_bar") : "212121";
+            }
             if ("c_menu_divider".equals(key)) return color("c_divider");
             if ("c_cal_title_line".equals(key)) return color("c_bg");
             if ("c_sub_text1".equals(key)) return color("c_sub_text");
@@ -74,7 +79,7 @@ final class Themes {
     private static final String[] CAL_KEYS = { "c_sun_bg", "c_sun_text", "c_month_text", "c_cal_title_bg",
             "c_cal_title_text", "c_holiday", "c_sub_text", "c_menu_text",
             "c_menu_divider", "c_cal_title_line", "c_sub_text1", "c_btn_bg", "c_btn_text", "c_btn_border",
-            "c_arrows", "c_cal_icon" };
+            "c_arrows", "c_cal_icon", "c_toolbar", "c_arrow_pressed" };
 
     /**
      * Starije teme (sacuvane prije ovih boja) dobijaju zasebne vrijednosti: jednom se uzmu iz boja uklopljenih u
@@ -89,7 +94,10 @@ final class Themes {
     private static Theme make(String id, String name, String... hex) {
         Theme t = new Theme(id, name);
         for (int i = 0; i < ORDER.length; i++) t.colors.put(ORDER[i], hex[i]);
-        for (String k : CAL_KEYS) t.colors.put(k, Colors.def(k));
+        for (String k : CAL_KEYS) {
+            if (!"c_toolbar".equals(k) && !"c_arrow_pressed".equals(k)) t.colors.put(k, Colors.def(k));
+        }
+        materialize(t);   // gornja traka i boja dodira: iz boja teme (isti izgled kao do sada)
         return t;
     }
 

@@ -48,6 +48,8 @@ final class Dark {
     static int BTN_BORDER = 0xffe99a96;
     static int ARROWS = 0xffffffff;
     static int CAL_ICON = 0xff3d8fd1;
+    static int TOOLBAR = 0xff212121;
+    static int ARROW_PRESSED = 0xff4a4d55;
     static int MENU_DIVIDER = 0xff353637;
     static int CAL_TITLE_LINE = 0xff2e3034;
     static int RED_BAR = 0xff8b0000;
@@ -90,6 +92,8 @@ final class Dark {
         BTN_BORDER = Prefs.color("c_btn_border");
         ARROWS = Prefs.color("c_arrows");
         CAL_ICON = Prefs.color("c_cal_icon");
+        TOOLBAR = Prefs.color("c_toolbar");
+        ARROW_PRESSED = Prefs.color("c_arrow_pressed");
         MENU_DIVIDER = Prefs.color("c_menu_divider");
         CAL_TITLE_LINE = Prefs.color("c_cal_title_line");
         RED_BAR = Prefs.color("c_red_bar");
@@ -826,6 +830,44 @@ final class Dark {
         styleMonthImage(iv);
     }
 
+    private static final int TAG_BAR = 0x7e0c0a0b;
+
+    private static boolean isToolbar(View v) {
+        String cn = v.getClass().getName();
+        if (cn.endsWith(".Toolbar")) return true;
+        int id = v.getId();
+        if (id == View.NO_ID) return false;
+        try {
+            String n = v.getResources().getResourceEntryName(id);
+            return "toolbar".equals(n) || "action_bar".equals(n);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Gornja traka aplikacije ("Pravoslavac" + meni): boja "Gornja traka" iz teme. */
+    static void styleToolbar(View v) {
+        try {
+            if (!isToolbar(v)) return;
+            v.setTag(TAG_BAR, Boolean.TRUE);
+            Drawable d = v.getBackground();
+            if (!(d instanceof ColorDrawable) || ((ColorDrawable) d).getColor() != TOOLBAR) {
+                v.setBackground(new ColorDrawable(TOOLBAR));
+            }
+            Object par = v.getParent();                       // ActionBarContainer iza trake
+            if (par instanceof View && par.getClass().getName().endsWith("ActionBarContainer")) {
+                try {
+                    par.getClass().getMethod("setPrimaryBackground", Drawable.class)
+                            .invoke(par, new ColorDrawable(TOOLBAR));
+                } catch (Throwable ignore) {
+                    // nema te metode: dovoljna je pozadina same trake
+                }
+            }
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
+    }
+
     private static boolean isMonthBar(View v) {
         return isMonthBarId(v);
     }
@@ -833,7 +875,8 @@ final class Dark {
     static void fixBackground(View v) {
         Drawable d = v.getBackground();
         if (d == null) return;
-        if (v.getTag(TAG_SUN) != null || v.getTag(TAG_TITLE) != null || v.getTag(TAG_LINE) != null) return;   // vec u bojama teme
+        if (v.getTag(TAG_SUN) != null || v.getTag(TAG_TITLE) != null || v.getTag(TAG_LINE) != null
+                || v.getTag(TAG_BAR) != null) return;   // vec u bojama teme
         if (d instanceof ColorDrawable) {
             int c = ((ColorDrawable) d).getColor();
             if (c == 0xff8b0000) {                       // crvena traka (npr. naslov mjeseca)
@@ -900,6 +943,7 @@ final class Dark {
             setTabIndicator(v);
         }
         if (v instanceof ImageView) styleMonthImage((ImageView) v);
+        styleToolbar(v);
         if (v instanceof TextView) {
             TextView tv = (TextView) v;
             int role = roleColor(tv);

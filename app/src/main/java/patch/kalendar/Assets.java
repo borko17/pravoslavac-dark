@@ -39,9 +39,13 @@ final class Assets {
     /** Zajednicki dio skripti: prepoznavanje i bojenje dugmadi "претходно / календар / следеће". */
     private static final String NAV_CORE =
             "var W=['@W0@','@W1@','@W2@','@W3@'];"
-            + "function isNav(e){try{if(e.nodeType!==1)return false;if(e.children&&e.children.length>3)return false;var r=(e.value||e.textContent||'');if(r.length>400)return false;var b=/[<>\\[\\]\\u00ab\\u00bb]/.test(r);var t=r.replace(/[<>\\[\\]\\u00ab\\u00bb]/g,'').replace(/\\s+/g,' ').trim().toLowerCase();if(t===W[0]||t===W[1]||t===W[3])return true;if(t===W[2]&&b)return true;}catch(x){}return false;}"
+            + "var BL={TD:1,TH:1,TR:1,TABLE:1,TBODY:1,THEAD:1,TFOOT:1,LI:1,UL:1,OL:1,P:1,FORM:1,BODY:1,HTML:1,CENTER:1,SECTION:1,ARTICLE:1,MAIN:1,HEADER:1,FOOTER:1,NAV:1};"
+            + "var IT={A:1,BUTTON:1,INPUT:1};"
+            + "function isNav(e){try{if(e.nodeType!==1)return false;if(e.childElementCount>3)return false;var r=(e.value||e.textContent||'');if(r.length>400)return false;var b=/[<>\\[\\]\\u00ab\\u00bb]/.test(r);var t=r.replace(/[<>\\[\\]\\u00ab\\u00bb]/g,'').replace(/\\s+/g,' ').trim().toLowerCase();if(t===W[0]||t===W[1]||t===W[3])return true;if(t===W[2]&&b)return true;}catch(x){}return false;}"
+            + "function looks(p){try{var c=getComputedStyle(p);return c.backgroundImage!=='none'||parseFloat(c.borderTopWidth)>0||parseFloat(c.borderTopLeftRadius)>0||c.boxShadow!=='none';}catch(x){return false;}}"
+            + "function isBtn(e){if(!isNav(e))return false;var t=e.tagName;if(BL[t])return false;if(IT[t])return true;return looks(e);}"
             + "function mark(e){try{e.setAttribute('data-dkb','1');var s=e.style;s.setProperty('background-color','@BTNBG@','important');s.setProperty('background-image','none','important');s.setProperty('color','@BTNTEXT@','important');s.setProperty('border-color','@BTNBORDER@','important');s.setProperty('outline-color','@BTNBORDER@','important');}catch(x){}}"
-            + "function scan(r){try{if(!r||r.nodeType!==1)return;if(isNav(r)){mark(r);return;}var l=r.querySelectorAll('a,button,input,span');for(var i=0;i<l.length;i++)if(isNav(l[i]))mark(l[i]);}catch(x){}}"
+            + "function scan(r){try{if(!r||r.nodeType!==1)return;if(isBtn(r))mark(r);var l=r.querySelectorAll('a,button,input,span,div,b,font,i,strong');for(var i=0;i<l.length;i++)if(isBtn(l[i]))mark(l[i]);}catch(x){}}"
             + "var markNav=scan;";
 
     private static String navCore() {
@@ -51,7 +55,7 @@ final class Assets {
     }
 
     private static final String NAV_OBSERVER =
-            "function text(n){var p=n.parentNode;for(var k=0;k<3&&p&&p.nodeType===1;k++,p=p.parentNode)if(isNav(p))mark(p);}"
+            "function text(n){var p=n.parentNode;for(var k=0;k<3&&p&&p.nodeType===1;k++,p=p.parentNode)if(isBtn(p))mark(p);}"
             + "try{new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){var m=ms[i];if(m.type==='characterData'){text(m.target);continue;}var a=m.addedNodes;for(var j=0;j<a.length;j++){var n=a[j];if(n.nodeType===1)scan(n);else if(n.nodeType===3)text(n);}}}).observe(document,{childList:true,subtree:true,characterData:true});}catch(x){}"
             + "document.addEventListener('DOMContentLoaded',function(){scan(document.documentElement);});"
             + "window.addEventListener('load',function(){scan(document.documentElement);});"
@@ -104,7 +108,7 @@ final class Assets {
                     + "  function fix(e){\n"
                     + "    if(e.nodeType!==1||SKIP[e.tagName.toUpperCase()])return;\n"
                     + "    var tn=e.tagName.toUpperCase();\n"
-                    + "    if((tn==='A'||tn==='BUTTON'||tn==='INPUT'||tn==='SPAN'||tn==='DIV')&&isNav(e)){mark(e);return;}\n"
+                    + "    if((tn==='A'||tn==='BUTTON'||tn==='INPUT'||tn==='SPAN'||tn==='DIV')&&isBtn(e)){mark(e);return;}\n"
                     + "    var cs=getComputedStyle(e),c=parse(cs.color),b=parse(cs.backgroundColor),v;\n"
                     + "    if(c&&(v=fgMap(c)))e.style.setProperty('color',v,'important');\n"
                     + "    if(e===document.body||e===document.documentElement){e.style.setProperty('background-color','@BG@','important');e.style.setProperty('background-image','none','important');}\n"
