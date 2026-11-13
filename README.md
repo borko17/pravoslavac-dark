@@ -11,7 +11,7 @@ i prikazu teksta.
 
 - **Tamna tema** za celu aplikaciju: trake i tabovi, liste, meni, redovi kalendara, dijalozi, kao i
   sadržaj knjiga, molitvi i žitija (WebView)
-- **Uređivač tema**: 37 podesivih boja (među njima zasebne boje nedeljne trake, meseca i godine i naslova kalendara; i njih zadaje generator nasumičnih tema), birač boje (prstenovi nijanse, zasićenosti i svetline + unos
+- **Uređivač tema**: 38 podesivih boja (među njima zasebne boje nedeljne trake, meseca i godine i naslova kalendara; i njih zadaje generator nasumičnih tema), birač boje (prstenovi nijanse, zasićenosti i svetline + unos
   hex koda), preimenovanje, brisanje, kopiranje i neograničeno vraćanje izmena (undo).
 - **Nasumične teme** (svetle ili tamne) sa zagarantovanim kontrastom slova i pozadine (WCAG omjer
   kontrasta), uključujući teme generisane iz vlastite boje pozadine i boje praznika.
