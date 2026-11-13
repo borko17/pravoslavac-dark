@@ -121,6 +121,52 @@ final class SettingsUi {
         attach();
     }
 
+    /** Poslije recreate() podesavanja se ponovo otvaraju (ako je ovo postavljeno). */
+    private static boolean pendingReopen;
+    private static int pendingTab;
+
+    /** Ponovo napravi ekran aplikacije (nova tema/originalne boje) i odmah vrati podesavanja na isti tab. */
+    private void recreateKeepingSettings() {
+        final Activity a = act;
+        pendingReopen = true;
+        pendingTab = tab;
+        close(false);
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    a.recreate();
+                } catch (Throwable t) {
+                    pendingReopen = false;
+                    XposedBridge.log(t);
+                }
+            }
+        });
+    }
+
+    /** Poziva se iz onCreate-a glavne aktivnosti: ako je recreate pokrenut iz podesavanja, otvori ih opet. */
+    static void reopenIfPending(final Activity a) {
+        if (!pendingReopen) return;
+        pendingReopen = false;
+        final int t = pendingTab;
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (a.isFinishing() || a.isDestroyed()) return;
+                    show(a);
+                    SettingsUi s = current;
+                    if (s != null && !s.closed && s.act == a && s.tab != t) {
+                        s.tab = t;
+                        s.build();
+                    }
+                } catch (Throwable e) {
+                    XposedBridge.log(e);
+                }
+            }
+        }, 250);
+    }
+
     private void close(boolean apply) {
         if (closed) return;
         closed = true;
@@ -482,19 +528,23 @@ final class SettingsUi {
                 sp.edit().putBoolean(key, checked).commit();
                 Prefs.refresh();
                 if (Prefs.KEY_DARK.equals(key)) {
-                    dirty = true;
+                    boolean ok = true;
                     if (checked) {
                         darkOff = false;
                         Dark.reload();
                         Hook.reapplyResources();
-                        applyToolbarNow();
                     } else {
-                        // vrati originalne boje resursa; ekran se ponovo pravi kad se podesavanja zatvore
-                        boolean ok = Hook.restoreResources(act);
+                        // vrati originalne boje resursa
+                        ok = Hook.restoreResources(act);
                         darkOff = !ok;
-                        toast(ok ? "Тема је искључена. Затвори подешавања да се примени."
-                                : "Поново покрени апликацију.");
                     }
+                    if (ok) {
+                        // odmah ponovo napravi ekran i vrati se u podesavanja (isti tab)
+                        recreateKeepingSettings();
+                        return;
+                    }
+                    dirty = true;
+                    toast("Поново покрени апликацију.");
                     host.post(new Runnable() {
                         @Override
                         public void run() {

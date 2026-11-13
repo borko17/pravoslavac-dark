@@ -863,6 +863,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
             protected void afterHookedMethod(MethodHookParam param) {
                 try {
                     addMenuGroup(param.thisObject);
+                    SettingsUi.reopenIfPending((Activity) param.thisObject);
                 } catch (Throwable t) {
                     XposedBridge.log(t);
                 }
