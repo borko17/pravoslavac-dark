@@ -487,6 +487,7 @@ final class SettingsUi {
                         darkOff = false;
                         Dark.reload();
                         Hook.reapplyResources();
+                        applyToolbarNow();
                     } else {
                         // vrati originalne boje resursa; ekran se ponovo pravi kad se podesavanja zatvore
                         boolean ok = Hook.restoreResources(act);
@@ -528,7 +529,18 @@ final class SettingsUi {
         Prefs.refresh();
         Dark.reload();
         Hook.reapplyResources();
+        applyToolbarNow();
         dirty = true;
+    }
+
+    /** Odmah oboji gornju traku aplikacije (ne ceka zatvaranje podesavanja). */
+    private void applyToolbarNow() {
+        try {
+            if (!themed()) return;
+            Dark.refreshToolbar(act.getWindow().getDecorView());
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
     }
 
     private void addThemeSection(LinearLayout root) {

@@ -230,6 +230,9 @@ final class RandomTheme {
         int toolbar = light ? bar : hsl(h0, Math.min(1f, bgS + 0.02f), bgL + 0.075f);
         // boja dodirnute strelice: primjetno svjetlija od trake mjeseca
         int arrowPressed = mix(month, arrows, 0.30f);
+        int tbWhite = 0xffffffff;
+        int tbBlack = hsl(h0, 0.10f, 0.07f);
+        int toolbarText = contrast(tbWhite, toolbar) >= contrast(tbBlack, toolbar) ? tbWhite : tbBlack;
 
         Map<String, String> m = new LinkedHashMap<String, String>();
         put(m, "c_bg", bg);
@@ -248,6 +251,7 @@ final class RandomTheme {
         put(m, "c_arrows", arrows);
         put(m, "c_cal_icon", calIcon);
         put(m, "c_toolbar", toolbar);
+        put(m, "c_toolbar_text", toolbarText);
         put(m, "c_arrow_pressed", arrowPressed);
         put(m, "c_menu_text", menuText);
         put(m, "c_web_text", webText);

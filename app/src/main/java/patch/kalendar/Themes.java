@@ -79,7 +79,7 @@ final class Themes {
     private static final String[] CAL_KEYS = { "c_sun_bg", "c_sun_text", "c_month_text", "c_cal_title_bg",
             "c_cal_title_text", "c_holiday", "c_sub_text", "c_menu_text",
             "c_menu_divider", "c_cal_title_line", "c_sub_text1", "c_btn_bg", "c_btn_text", "c_btn_border",
-            "c_arrows", "c_cal_icon", "c_toolbar", "c_arrow_pressed" };
+            "c_arrows", "c_cal_icon", "c_toolbar", "c_arrow_pressed", "c_toolbar_text" };
 
     /**
      * Starije teme (sacuvane prije ovih boja) dobijaju zasebne vrijednosti: jednom se uzmu iz boja uklopljenih u

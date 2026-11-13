@@ -49,6 +49,7 @@ final class Dark {
     static int ARROWS = 0xffffffff;
     static int CAL_ICON = 0xff3d8fd1;
     static int TOOLBAR = 0xff212121;
+    static int TOOLBAR_TEXT = 0xffffffff;
     static int ARROW_PRESSED = 0xff4a4d55;
     static int MENU_DIVIDER = 0xff353637;
     static int CAL_TITLE_LINE = 0xff2e3034;
@@ -93,6 +94,7 @@ final class Dark {
         ARROWS = Prefs.color("c_arrows");
         CAL_ICON = Prefs.color("c_cal_icon");
         TOOLBAR = Prefs.color("c_toolbar");
+        TOOLBAR_TEXT = Prefs.color("c_toolbar_text");
         ARROW_PRESSED = Prefs.color("c_arrow_pressed");
         MENU_DIVIDER = Prefs.color("c_menu_divider");
         CAL_TITLE_LINE = Prefs.color("c_cal_title_line");
@@ -341,6 +343,7 @@ final class Dark {
         for (int i = 0; i < 5 && p != null; i++) {
             if (i == 0 && p.getTag(TAG_TITLE) != null) return CAL_TITLE_TEXT;
             if (p.getTag(TAG_SUN) != null) return SUN_TEXT;
+            if (p.getTag(TAG_BAR) != null) return TOOLBAR_TEXT;
             if (isMonthBarId(p)) return MONTH_TEXT;
             Object par = p.getParent();
             p = par instanceof View ? (View) par : null;
@@ -862,6 +865,29 @@ final class Dark {
                 } catch (Throwable ignore) {
                     // nema te metode: dovoljna je pozadina same trake
                 }
+            }
+            try {
+                v.getClass().getMethod("setTitleTextColor", int.class).invoke(v, TOOLBAR_TEXT);
+            } catch (Throwable ignore) {
+                // nema te metode: tekst se boji preko TextView-ova unutar trake
+            }
+            recolorTexts(v, TOOLBAR_TEXT);
+            v.invalidate();
+            Object par2 = v.getParent();
+            if (par2 instanceof View) ((View) par2).invalidate();
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
+    }
+
+    /** Odmah primijeni boje gornje trake (pozadina + tekst) na vec otvoren ekran, bez ponovnog pravljenja ekrana. */
+    static void refreshToolbar(View root) {
+        try {
+            if (root == null) return;
+            styleToolbar(root);
+            if (root instanceof ViewGroup) {
+                ViewGroup g = (ViewGroup) root;
+                for (int i = 0; i < g.getChildCount(); i++) refreshToolbar(g.getChildAt(i));
             }
         } catch (Throwable t) {
             XposedBridge.log(t);
