@@ -82,7 +82,7 @@ final class FontDialog {
     private boolean dead;
     private boolean changed;
     private boolean loaded;
-    private boolean warmed;
+    private int warmCount;
     private int totalCount;
 
     private String[] catalog = new String[0];
@@ -412,8 +412,8 @@ final class FontDialog {
                     @Override
                     public void run() {
                         if (fs == null) {
-                            if (!warmed && fe != null && fe.contains("видљивост")) {
-                                warmed = true;
+                            if (warmCount < 2 && fe != null) {   // poslije azuriranja modula prvi pokusaj cesto ne uspije: otkrij modul i ponovi
+                                warmCount++;
                                 warmUp();   // otkrij modul Pravoslavcu pa pokusaj ponovo
                                 return;
                             }
@@ -449,7 +449,7 @@ final class FontDialog {
             public void run() {
                 if (!dead) loadState();
             }
-        }, 800);
+        }, 1500);
     }
 
     private void showError(String err) {
@@ -458,8 +458,8 @@ final class FontDialog {
         list.removeAllViews();
         count.setText("");
         TextView t = text("Модул Pravoslavac Dark није доступан (" + err + ").\n\n"
-                + "У LSPosed-у за модул укључите и „System Framework“ (android) и рестартујте телефон, "
-                + "па покушајте поново.", 14f, pal.dim);
+                + "Ако сте модул ажурирали: у LSPosed-у за модул укључите и „System Framework“ (android) "
+                + "и рестартујте телефон, па покушајте поново.", 14f, pal.dim);
         t.setPadding(dp(2), dp(4), dp(2), dp(12));
         list.addView(t);
         LinearLayout bx = new LinearLayout(act);
