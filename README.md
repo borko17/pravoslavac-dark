@@ -15,37 +15,24 @@ i prikazu teksta.
   hex koda), preimenovanje, brisanje, kopiranje i neograničeno vraćanje izmena (undo).
 - **Nasumične teme** (svetle ili tamne) sa zagarantovanim kontrastom slova i pozadine (WCAG omjer
   kontrasta), uključujući teme generisane iz vlastite boje pozadine i boje praznika.
-- **Fontovi**: poseban tab; za svaki tekst ćirilični Google font i veličina. Fontovi nisu u aplikaciji, preuzimaju se
-  po izboru (vidi odeljak *Fontovi*).
+- **Fontovi**: preuzimanje ćiriličnih Google fontova u aplikaciji Pravoslavac Dark i podešavanje fonta i veličine za svaki tekst u aplikaciji.
 - **Prenos tema** preko klipborda (kopiraj sve / učitaj kopirane).
 - **Preskakanje uvodnog ekrana** (splash).
 - **Otvaranje kalendara pri pokretanju** (tekući mesec) umesto žitija za tekući dan.
 - **Tekst poravnat levo** umesto obostranog (justified) – u WebView sadržaju i u nativnim `TextView` poljima.
-- Podešavanja su **unutar same aplikacije** (Православац, odnosno Житије светих); modul nema vlastitu ikonu u launcheru.
-  Svaka aplikacija ima svoja nezavisna podešavanja i teme.
+- Podešavanja su **unutar same aplikacije** (Православац, odnosno Житије светих), dok se **preuzimanje fontova** vrši u aplikaciji **Pravoslavac Dark**.
 
 ## Fontovi
 
-Poseban tab **Фонтови** u Podešavanjima (pored „Опције“ i „Теме“). Fontovi ne zavise od teme boja.
+Preuzimanje fontova se vrši u aplikaciji **Pravoslavac Dark** (koja ima dozvolu za internet).
 
-Preuzeti fontovi se kopiraju u privatni prostor Pravoslavca (modul ih šalje preko `FontProvider`-a; ne koristi se zastarjeli „New XSharedPreferences“ LSPosed-a, pa nema upozorenja o zastarjeloj funkciji). Fontovi preuzeti ranijim verzijama prenose se automatski pri prvom korištenju.
-
-Pravoslavac nema dozvolu za internet, pa mrežu za njega radi sam modul (ima `INTERNET`, koristi se samo pri pritisku
-na „Preuzmi“). Sve se radi **u tabu „Фонтови“ unutar Pravoslavca**, bez prebacivanja u drugu aplikaciju: panel traži od modula
-preko njegovog `FontProvider`-a spisak, pregled i preuzimanje (dozvoljeni su samo Pravoslavac i Житије светих).
-
-1. Podešavanja → Фонтови → **Преузимање фонтова ▾** (ili „＋ Преузми фонтове…“ u izboru fonta) otvara panel sa spiskom.
+1. Otvorite aplikaciju **Pravoslavac Dark** (iz launchera, LSPosed-a ili preko dugmeta u podešavanjima Pravoslavca).
 2. Pritisnite **Preuzmi** uz željeni font. Spisak sadrži samo fontove sa ćirilicom (ugrađen je kraći spisak; dugme
    „Osvježi spisak“ povlači sve, a ima i pretragu). Font bez srpskih slova se odbacuje.
-   Svaki font se prije preuzimanja prikazuje u pregledu (pangram sa svim slovima srpske ćirilice); za pregled se
-   preuzima samo mali isječak (nekoliko KB, čuva se u kešu).
-3. U tabu „Фонтови“ izaberite font i veličinu (50–200 %) za svaki tekst posebno, ili odjednom za ceo kalendar
-   Posebne stavke teksta u kalendaru: datum u traci dana, dan u istoj traci, „мрс“ i oznake postova (вода, уље и
-   вино...) prepoznaju se po sadržaju teksta. Crkvenoslovenski fontovi (`triodion-ieUcs` i `IrmolSkun_0`) se automatski izuzimaju.
-   (prvi red „Цео календар“). Izmene se vide kad zatvorite podešavanja.
+   Svaki font se prije preuzimanja prikazuje u pregledu (pangram sa svim slovima srpske ćirilice).
+3. U aplikaciji Pravoslavac (Podešavanja → tab „Фонтови“) izaberite preuzeti font i veličinu (50–200 %) za svaki tekst posebno, ili odjednom za ceo kalendar (prvi red „Цео календар“). Posebne stavke teksta u kalendaru: datum u traci dana, dan u istoj traci, „мрс“ i oznake postova (вода, уље и вино...) prepoznaju se po sadržaju teksta. Crkvenoslovenski fontovi (`triodion-ieUcs` i `IrmolSkun_0`) se automatski izuzimaju. Izmene se vide kad zatvorite podešavanja.
 
-Da bi panel radio, u LSPosed-u uključite modul i za „System Framework“ (android), pa restartujte telefon (modul tako postaje vidljiv Pravoslavcu, Android 11+). Ako panel ipak javi da modul nije dostupan, provjerite to. Aplikacija modula nema svoj ekran za fontove
-(samo kratko obavještenje); preuzimanje je isključivo u Pravoslavcu, ali modul treba ostati instaliran.
+Preuzimanje fontova radi direktno u aplikaciji modula, pa u LSPosed-u **nije potreban** `System Framework` opseg.
 
 Napomene: font se primenjuje na ceo tekst datog tipa (slova u tekstu koja imaju drugu boju preko `ForegroundColorSpan`
 zadržavaju font tog teksta); „Посећени линкови“ nemaju poseban font ni veličinu (preglednik to ne dozvoljava),
@@ -61,7 +48,7 @@ koriste podešavanje linkova. Veličina „Текст житија, књига �
 
 1. Preuzmite najnoviji `Pravoslavac_Dark_<verzija>.apk` iz sekcije **Releases** i instalirajte ga.
 2. U LSPosed-u otvorite **Moduli**, uključite **Pravoslavac Dark** i u opsegu (scope) označite
-   `com.pravoslavac` i/ili `com.zitijesvetih` i `System Framework`.
+   `com.pravoslavac` i/ili `com.zitijesvetih`.
 3. Prisilno zaustavite aplikaciju i pokrenite je ponovo.
 
 Modul se pojavljuje u LSPosed-u pod nazivom *Pravoslavac Dark*, a paket je `io.github.borko17.pravoslavac.dark`.
@@ -69,7 +56,7 @@ Modul se pojavljuje u LSPosed-u pod nazivom *Pravoslavac Dark*, a paket je `io.g
 ## Podešavanja
 
 U aplikaciji (Pravoslavac ili Житије светих) otvorite bočni meni i izaberite poslednju grupu, **Podešavanja** (ikonica zupčanika).
-Ekran ima dva taba: **Opcije** i **Teme**.
+Ekran ima tri taba: **Opcije**, **Teme** i **Fontovi**.
 
 ### Tab Opcije
 

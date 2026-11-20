@@ -4,6 +4,5 @@
     <string-array name="xposedscope">
         <item>com.pravoslavac</item>
         <item>com.zitijesvetih</item>
-        <item>android</item>
     </string-array>
 </resources>
