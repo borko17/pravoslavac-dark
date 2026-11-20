@@ -13,6 +13,7 @@ import android.os.Looper;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,7 +25,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,9 +35,12 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import de.robv.android.xposed.XposedBridge;
+
 /**
- * Ekran/Panel za preuzimanje fontova sa Google Fonts u aplikaciji Pravoslavac Dark.
- * Izvrsava se u procesu modula (koji ima INTERNET dozvolu) i direktno poziva FontStore.
+ * Prozor za preuzimanje fontova unutar Pravoslavca (Podesavanja -> Фонтови). Izvrsava se u procesu Pravoslavca;
+ * mrezu (spisak, pregled, preuzimanje) radi modul preko FontProvider-a (vidi FontClient), jer Pravoslavac nema INTERNET.
+ * Izgled prati boje odabrane teme; dugmad su zaobljene (pilule) sa stanjem pritiska.
  */
 final class FontPanel {
 
@@ -46,7 +49,7 @@ final class FontPanel {
     static final int DANGER = 2;    // brisanje (crvenkasto)
     static final int SUCCESS = 3;   // preuzimanje (zeleno)
 
-    /** Boje prozora. */
+    /** Boje prozora (zadaju se izricito iz SettingsUi). */
     static final class Pal {
         final int bg, text, dim, btnBg, btnText, btnBorder;
         final boolean dark;
@@ -66,6 +69,7 @@ final class FontPanel {
 
     private final Activity act;
     private final Pal pal;
+    private final FontClient client;
     private final Runnable onChanged;
     private final Runnable onDeleted;
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -78,6 +82,7 @@ final class FontPanel {
     private String filter = "";
     private boolean dead;
     private boolean loaded;
+    private boolean warmed;
     private int totalCount;
 
     private String[] catalog = new String[0];
@@ -101,17 +106,18 @@ final class FontPanel {
     FontPanel(Activity act, Pal pal, Runnable onChanged, Runnable onDeleted) {
         this.act = act;
         this.pal = pal;
+        this.client = new FontClient(act);
         this.onChanged = onChanged;
         this.onDeleted = onDeleted;
         buildView();
     }
 
-    /** View panela. */
+    /** View panela (ugraden u tab Фонтови; dodaje ga SettingsUi). */
     View view() {
         return root;
     }
 
-    /** Ucitava spisak. */
+    /** Ucitava spisak (jednom, kad se panel prvi put prikaze). */
     void start() {
         if (!started) {
             started = true;
@@ -124,7 +130,7 @@ final class FontPanel {
         loadVisiblePreviews();
     }
 
-    /** Zaustavlja pozadinske niti. */
+    /** Zatvaranje podesavanja: zaustavlja pozadinske niti. */
     void dispose() {
         dead = true;
         pool.shutdownNow();
@@ -164,6 +170,7 @@ final class FontPanel {
     /** Zaobljeno dugme (pilula): kind = PRIMARY / TONAL / DANGER, icon = Icons.* ili -1, small = manje dugme za redove. */
     static TextView pill(Activity act, Pal p, String label, int kind, int icon, boolean small) {
         TextView b = new TextView(act);
+        b.setTag(Dark.TAG_SETTINGS, Boolean.TRUE);   // prije setText (vidi SettingsUi.label)
         b.setText(label);
         b.setTextSize(small ? 13f : 14f);
         b.setTypeface(Typeface.DEFAULT_BOLD);
@@ -191,7 +198,7 @@ final class FontPanel {
             fg = 0xff000000 | p.btnText;
             press = Dark.mix(fill, fg, 0.22f);
             stroke = 0xff000000 | p.btnBorder;
-        } else if (kind == SUCCESS) {
+        } else if (kind == SUCCESS) {   // isti stil kao DANGER: slova u boji, blijeda pozadina iste nijanse
             int green = p.dark ? 0xff81c784 : 0xff2e7d32;
             fill = Dark.mix(p.bg, green, 0.16f);
             press = Dark.mix(p.bg, green, 0.32f);
@@ -220,6 +227,7 @@ final class FontPanel {
 
     private TextView text(String s, float size, int color) {
         TextView tv = new TextView(act);
+        tv.setTag(Dark.TAG_SETTINGS, Boolean.TRUE);   // prije setText
         tv.setText(s);
         tv.setTextSize(size);
         tv.setTextColor(color);
@@ -249,9 +257,10 @@ final class FontPanel {
     private void buildView() {
         root = new LinearLayout(act);
         root.setOrientation(LinearLayout.VERTICAL);
+        root.setTag(Dark.TAG_SETTINGS, Boolean.TRUE);
 
-        TextView hint = text("Само ћирилични фонтови са свим српским словима. Преузети фонтови се аутоматски "
-                + "користе у апликацијама Православац и Житије светих.", 12f, pal.dim);
+        TextView hint = text("Само ћирилични фонтови са свим српским словима. Интернет користи модул "
+                + "Pravoslavac Dark (Православац га нема), само кад притиснете „Преузми“.", 12f, pal.dim);
         hint.setPadding(0, dp(4), 0, 0);
         root.addView(hint);
 
@@ -279,6 +288,7 @@ final class FontPanel {
 
         // претрага
         EditText search = new EditText(act);
+        search.setTag(Dark.TAG_SETTINGS, Boolean.TRUE);
         search.setHint("Претрага");
         search.setSingleLine(true);
         search.setImeOptions(EditorInfo.IME_ACTION_DONE);
@@ -293,10 +303,12 @@ final class FontPanel {
         search.setBackground(sbg);
         search.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
+            public void beforeTextChanged(CharSequence s, int a, int b, int c) {
+            }
 
             @Override
-            public void onTextChanged(CharSequence s, int a, int b, int c) {}
+            public void onTextChanged(CharSequence s, int a, int b, int c) {
+            }
 
             @Override
             public void afterTextChanged(Editable s) {
@@ -337,8 +349,14 @@ final class FontPanel {
         return e.getMessage() != null ? e.getMessage() : e.toString();
     }
 
+    /** Font je preuzet/obrisan: aplikacija ponovo ucitava spisak fontova iz postavki modula. */
     private void markChanged() {
-        if (onChanged != null) onChanged.run();
+        try {
+            Fonts.reset();
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
+        if (onChanged != null) onChanged.run();   // osvjezi nazive fontova u tabu
     }
 
     // ------------------------------------------------------------------ stanje i lista
@@ -349,31 +367,62 @@ final class FontPanel {
         pool.execute(new Runnable() {
             @Override
             public void run() {
+                FontClient.State st = null;
+                String err = null;
                 try {
-                    FontStore.purgeIncomplete(act);
-                    catalog = FontStore.catalog(act);
-                    installed.clear();
-                    installed.addAll(FontStore.installed(act));
-                    bad.clear();
-                    bad.addAll(FontStore.badPreviews(act));
-                    ui(new Runnable() {
-                        @Override
-                        public void run() {
-                            loaded = true;
-                            build();
-                        }
-                    });
+                    st = client.state();
+                    try {
+                        client.sync(st);   // fontovi se cuvaju u Pravoslavcu: prenesi nove / ukloni obrisane
+                    } catch (Throwable ignored) {
+                        // nije kriticno: ponovo se pokusava pri sljedecem otvaranju
+                    }
                 } catch (Throwable e) {
-                    final String err = msg(e);
-                    ui(new Runnable() {
-                        @Override
-                        public void run() {
-                            showError(err);
-                        }
-                    });
+                    err = msg(e);
                 }
+                final FontClient.State fs = st;
+                final String fe = err;
+                ui(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (fs == null) {
+                            if (!warmed && fe != null && fe.contains("видљивост")) {
+                                warmed = true;
+                                warmUp();   // otkrij modul Pravoslavcu pa pokusaj ponovo
+                                return;
+                            }
+                            showError(fe);
+                            return;
+                        }
+                        catalog = fs.catalog;
+                        installed.clear();
+                        installed.addAll(fs.installed);
+                        bad.clear();
+                        bad.addAll(fs.bad);
+                        loaded = true;
+                        build();
+                    }
+                });
             }
         });
+    }
+
+    /** Pokrece nevidljivu aktivnost modula (otkriva paket modula Pravoslavcu), pa ponovo ucitava stanje. */
+    private void warmUp() {
+        try {
+            android.content.Intent i = new android.content.Intent();
+            i.setClassName(FontCatalog.MODULE_APP_ID, "patch.kalendar.WarmupActivity");
+            act.startActivity(i);
+            act.overridePendingTransition(0, 0);
+        } catch (Throwable t) {
+            showError("не могу да покренем модул: " + msg(t));
+            return;
+        }
+        main.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (!dead) loadState();
+            }
+        }, 800);
     }
 
     private void showError(String err) {
@@ -381,7 +430,9 @@ final class FontPanel {
         rows.clear();
         list.removeAllViews();
         count.setText("");
-        TextView t = text("Грешка при учитавању списака (" + err + ").", 14f, pal.dim);
+        TextView t = text("Модул Pravoslavac Dark није доступан (" + err + ").\n\n"
+                + "У LSPosed-у за модул укључите и „System Framework“ (android) и рестартујте телефон, "
+                + "па покушајте поново.", 14f, pal.dim);
         t.setPadding(dp(2), dp(4), dp(2), dp(12));
         list.addView(t);
         LinearLayout bx = new LinearLayout(act);
@@ -511,7 +562,7 @@ final class FontPanel {
         if (h != null) bindRow(h);
     }
 
-    /** Broj fontova koji jos nisu provjereni. */
+    /** Broj fontova koji jos nisu provjereni (nisu preuzeti, nisu izbaceni, pregled jos nije gotov). */
     private int pendingChecks() {
         int n = 0;
         for (String fam : catalog) {
@@ -536,6 +587,7 @@ final class FontPanel {
         }
     }
 
+    /** фонт / фонта / фонтова (уз број). */
     private static String fontWord(int n) {
         int m10 = n % 10;
         int m100 = n % 100;
@@ -546,6 +598,7 @@ final class FontPanel {
 
     // ------------------------------------------------------------------ pregled (isjecci fontova)
 
+    /** Provjerava u pozadini sve fontove sa spiska, da se nekompatibilni izbace sto prije. */
     private void checkAllPreviews() {
         for (String fam : catalog) {
             if (!installed.contains(fam)) startPreview(fam);
@@ -553,6 +606,7 @@ final class FontPanel {
         updateCount();
     }
 
+    /** Pokrece ucitavanje pregleda za redove na ekranu (i za nekoliko redova ispod njih). */
     private void loadVisiblePreviews() {
         if (dead || list == null) return;
         Rect r = new Rect();
@@ -576,46 +630,47 @@ final class FontPanel {
             pool.execute(new Runnable() {
                 @Override
                 public void run() {
-                    File f;
-                    boolean complete;
+                    FontClient.Preview p = null;
                     try {
-                        f = FontStore.preview(act, fam);
-                        complete = FontStore.previewComplete(f);
-                        if (!complete) FontStore.markBad(act, fam);
+                        p = client.preview(fam);
                     } catch (Throwable e) {
-                        f = null;
-                        complete = false;
+                        p = null;
                     }
-                    final File ff = f;
-                    final boolean fc = complete;
+                    final FontClient.Preview fp = p;
                     ui(new Runnable() {
                         @Override
                         public void run() {
                             previewBusy.remove(fam);
-                            if (ff == null || !fc) {
-                                if (ff != null) hideFamily(fam);
-                                else previewFailed.add(fam);
+                            if (fp == null) {
+                                previewFailed.add(fam);
                                 updateCount();
                             } else {
-                                applyPreview(fam, ff);
+                                applyPreview(fam, fp);
                             }
                         }
                     });
                 }
             });
         } catch (Throwable e) {
-            previewBusy.remove(fam);
+            previewBusy.remove(fam);   // pool je ugasen (prozor se zatvara)
         }
     }
 
-    private void applyPreview(String fam, File previewFile) {
+    private void applyPreview(String fam, FontClient.Preview p) {
+        if (!p.complete) {
+            if (!installed.contains(fam)) hideFamily(fam);
+            return;
+        }
         Typeface tf;
+        Fonts.creating = true;   // da se ne smatra fontom aplikacije
         try {
-            tf = Typeface.createFromFile(previewFile);
+            tf = Typeface.createFromFile(p.file);
         } catch (Throwable e) {
             previewFailed.add(fam);
             updateCount();
             return;
+        } finally {
+            Fonts.creating = false;
         }
         faces.put(fam, tf);
         Holder h = rows.get(fam);
@@ -623,6 +678,7 @@ final class FontPanel {
         updateCount();
     }
 
+    /** Font cijem pregledu fale srpska slova nestaje sa spiska (modul to pamti, pa se ne nudi ni poslije). */
     private void hideFamily(String fam) {
         bad.add(fam);
         faces.remove(fam);
@@ -650,7 +706,7 @@ final class FontPanel {
             public void run() {
                 String err = null;
                 try {
-                    FontStore.download(act, fam);
+                    client.download(fam);
                 } catch (Throwable e) {
                     err = msg(e);
                 }
@@ -680,7 +736,7 @@ final class FontPanel {
             public void run() {
                 String err = null;
                 try {
-                    FontStore.delete(act, fam);
+                    client.delete(fam);
                 } catch (Throwable e) {
                     err = msg(e);
                 }
@@ -691,11 +747,11 @@ final class FontPanel {
                         busy.remove(fam);
                         if (fe == null) {
                             installed.remove(fam);
-                            if (onDeleted != null) onDeleted.run();
+                            if (onDeleted != null) onDeleted.run();   // tekstovi sa ovim fontom se vracaju na original
                             markChanged();
                             updateCount();
                             if (!inCatalog(fam)) {
-                                build();
+                                build();   // font nije u katalogu: red nestaje
                                 return;
                             }
                         }
@@ -729,7 +785,7 @@ final class FontPanel {
                             public void run() {
                                 String err = null;
                                 try {
-                                    FontStore.deleteAll(act);
+                                    client.deleteAll();
                                 } catch (Throwable e) {
                                     err = msg(e);
                                 }
@@ -742,7 +798,7 @@ final class FontPanel {
                                             return;
                                         }
                                         installed.clear();
-                                        if (onDeleted != null) onDeleted.run();
+                                        if (onDeleted != null) onDeleted.run();   // svi tekstovi se vracaju na original
                                         markChanged();
                                         build();
                                     }
@@ -763,21 +819,31 @@ final class FontPanel {
             @Override
             public void run() {
                 String err = null;
+                FontClient.State st = null;
+                int n = 0;
                 try {
-                    FontStore.refreshCatalog(act);
-                    catalog = FontStore.catalog(act);
-                    installed.clear();
-                    installed.addAll(FontStore.installed(act));
-                    bad.clear();
-                    bad.addAll(FontStore.badPreviews(act));
+                    n = client.refresh();
+                    st = client.state();
+                    try {
+                        client.sync(st);   // fontovi se cuvaju u Pravoslavcu: prenesi nove / ukloni obrisane
+                    } catch (Throwable ignored) {
+                        // nije kriticno: ponovo se pokusava pri sljedecem otvaranju
+                    }
                 } catch (Throwable e) {
                     err = msg(e);
                 }
                 final String fe = err;
+                final FontClient.State fs = st;
+                final int fn = n;
                 ui(new Runnable() {
                     @Override
                     public void run() {
-                        if (fe == null) {
+                        if (fe == null && fs != null) {
+                            catalog = fs.catalog;
+                            installed.clear();
+                            installed.addAll(fs.installed);
+                            bad.clear();
+                            bad.addAll(fs.bad);
                             previewFailed.clear();
                             build();
                             toast("Списак освјежен: " + totalCount + " " + fontWord(totalCount) + " са ћирилицом");
@@ -798,6 +864,7 @@ final class FontPanel {
         LinearLayout box = new LinearLayout(act);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(22), dp(20), dp(22), dp(16));
+        box.setTag(Dark.TAG_SETTINGS, Boolean.TRUE);
         TextView t = text(title, 18f, pal.text);
         t.setTypeface(Typeface.DEFAULT_BOLD);
         box.addView(t);
@@ -827,11 +894,10 @@ final class FontPanel {
         box.addView(bx);
         d.setContentView(box);
         Window w = d.getWindow();
-        if (w != null) {
-            w.setBackgroundDrawable(windowBg(dp(16)));
-            w.setLayout(act.getResources().getDisplayMetrics().widthPixels - dp(48), WindowManager.LayoutParams.WRAP_CONTENT);
-            w.setGravity(Gravity.CENTER);
-        }
+        w.getDecorView().setTag(Dark.TAG_SETTINGS, Boolean.TRUE);
+        w.setBackgroundDrawable(windowBg(dp(16)));
+        w.setLayout(act.getResources().getDisplayMetrics().widthPixels - dp(48), WindowManager.LayoutParams.WRAP_CONTENT);
+        w.setGravity(Gravity.CENTER);
         d.show();
     }
 }

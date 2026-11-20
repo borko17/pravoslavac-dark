@@ -122,6 +122,10 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
+        if ("android".equals(lpparam.packageName)) {   // System Framework: modul vidljiv Pravoslavcu (FontProvider)
+            SystemHook.install(lpparam.classLoader);
+            return;
+        }
         if (!select(lpparam.packageName)) return;
         final ClassLoader cl = lpparam.classLoader;
         Prefs.init(lpparam.appInfo != null ? lpparam.appInfo.dataDir : null);

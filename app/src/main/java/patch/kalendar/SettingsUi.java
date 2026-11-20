@@ -10,6 +10,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Handler;
@@ -60,6 +61,8 @@ final class SettingsUi {
     private View drawerChild;
     private Object backCb;
     private boolean closed;
+    private FontPanel fontPanel;       // ugradjeno preuzimanje fontova u tabu Фонтови
+    private boolean fontPanelOpen;
     /** Odabrani tab: 0 = opcije (prekidaci), 1 = teme, 2 = fontovi. */
     private int tab;
     private int builtTab = -1;
@@ -110,8 +113,18 @@ final class SettingsUi {
         SettingsUi s = current;
         if (s == null || s.closed || s.act != act) return false;
         if (s.drawerOpen()) return false;
-        s.close(true);
+        if (!s.backInside()) s.close(true);
         return true;
+    }
+
+    /** Back dok je otvoreno preuzimanje fontova: zatvara samo taj dio (isto kao dugme "Затвори преузимање фонтова"). */
+    private boolean backInside() {
+        if (tab == 2 && fontPanelOpen) {
+            fontPanelOpen = false;
+            build();
+            return true;
+        }
+        return false;
     }
 
     private void open() {
@@ -173,6 +186,10 @@ final class SettingsUi {
     private void close(boolean apply) {
         if (closed) return;
         closed = true;
+        if (fontPanel != null) {
+            fontPanel.dispose();
+            fontPanel = null;
+        }
         if (current == this) current = null;
         unregisterBack();
         try {
@@ -206,7 +223,7 @@ final class SettingsUi {
         @Override
         public boolean dispatchKeyEvent(KeyEvent e) {
             if (e.getKeyCode() == KeyEvent.KEYCODE_BACK && !closed && !drawerOpen()) {
-                if (e.getAction() == KeyEvent.ACTION_UP) close(true);
+                if (e.getAction() == KeyEvent.ACTION_UP && !backInside()) close(true);
                 return true;
             }
             return super.dispatchKeyEvent(e);
@@ -297,7 +314,7 @@ final class SettingsUi {
                     @Override
                     public void onBackInvoked() {
                         if (s.drawerOpen()) Hook.closeDrawer(a);
-                        else s.close(true);
+                        else if (!s.backInside()) s.close(true);
                     }
                 };
             }
@@ -462,6 +479,12 @@ final class SettingsUi {
         scroll.setBackgroundColor(bg());
         scroll.setFillViewport(true);
         scroll.addView(root);
+        scroll.getViewTreeObserver().addOnScrollChangedListener(new android.view.ViewTreeObserver.OnScrollChangedListener() {
+            @Override
+            public void onScrollChanged() {
+                if (tab == 2 && fontPanel != null && fontPanelOpen) fontPanel.onScroll();
+            }
+        });
 
         LinearLayout col = new LinearLayout(act);
         col.setOrientation(LinearLayout.VERTICAL);
@@ -746,32 +769,49 @@ final class SettingsUi {
         }
     }
 
-    private void openModuleApp() {
-        try {
-            Intent intent = new Intent();
-            intent.setClassName(FontCatalog.MODULE_APP_ID, FontCatalog.MODULE_ACTIVITY);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            act.startActivity(intent);
-        } catch (Throwable t) {
-            toast("Не могу да покренем Pravoslavac Dark");
-        }
-    }
-
     private void addFontSection(LinearLayout root) {
-        Fonts.reset();
-        pruneMissingFonts();
         final FontPanel.Pal pal = fontPal();
-        TextView openBtn = FontPanel.pill(act, pal, "Преузимање фонтова (Pravoslavac Dark)", FontPanel.SUCCESS, Icons.DOWNLOAD, false);
-        openBtn.setOnClickListener(new View.OnClickListener() {
+        TextView toggle = fontPanelOpen
+                ? FontPanel.pill(act, pal, "Затвори преузимање фонтова", FontPanel.TONAL, Icons.CLOSE, false)
+                : FontPanel.pill(act, pal, "Отвори преузимање фонтова", FontPanel.SUCCESS, Icons.DOWNLOAD, false);
+        toggle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                openModuleApp();
+                fontPanelOpen = !fontPanelOpen;
+                build();
             }
         });
         LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        tlp.setMargins(0, dp(6), 0, dp(14));
-        root.addView(openBtn, tlp);
+        tlp.setMargins(0, dp(6), 0, dp(10));
+        root.addView(toggle, tlp);
+
+        if (fontPanelOpen) {
+            if (fontPanel != null && !fontPanel.sameColors(pal)) {   // promijenjena tema: napravi panel iznova
+                fontPanel.dispose();
+                fontPanel = null;
+            }
+            if (fontPanel == null) {
+                fontPanel = new FontPanel(act, pal, new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!closed) build();   // osvjezi nazive fontova u tabu
+                    }
+                }, new Runnable() {
+                    @Override
+                    public void run() {
+                        pruneMissingFonts();
+                    }
+                });
+            }
+            View pv = fontPanel.view();
+            if (pv.getParent() instanceof ViewGroup) ((ViewGroup) pv.getParent()).removeView(pv);
+            root.addView(pv, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            LinearLayout.LayoutParams gap = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(14));
+            root.addView(new View(act), gap);
+            fontPanel.start();
+        }
 
         root.addView(makeFontItem(null, "Цео календар (сви текстови)"));
         for (String[] c : Colors.ALL) {
@@ -864,7 +904,14 @@ final class SettingsUi {
                     @Override
                     public void onClick(DialogInterface d, int which) {
                         if (which == items.length - 1) {
-                            openModuleApp();
+                            fontPanelOpen = true;
+                            build();
+                            scroll.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    scroll.scrollTo(0, 0);
+                                }
+                            });
                             return;
                         }
                         String fam = which == 0 ? null : items[which];
