@@ -252,6 +252,12 @@ final class RandomTheme {
         int tbBlack = hsl(h0, 0.10f, 0.07f);
         int toolbarText = contrast(tbWhite, toolbar) >= contrast(tbBlack, toolbar) ? tbWhite : tbBlack;
 
+        // datum i dan u traci dana, oznake mrs / postovi: vlastite nijanse uz kontrast prema pozadinama
+        int dayDate = fit(h0 - 20f + r.nextFloat() * 40f, ts, light ? 0.13f : 0.89f, dir, MIN_TEXT, surfaces);
+        int dayName = fit(h0 - 20f + r.nextFloat() * 40f, ts, light ? 0.13f : 0.89f, dir, MIN_TEXT, surfaces);
+        int meat = fit(h0 - 20f + r.nextFloat() * 40f, ts, light ? 0.13f : 0.89f, dir, MIN_TEXT, surfaces);
+        int fast = fit(ht + (r.nextFloat() - 0.5f) * 40f, as, light ? 0.32f : 0.70f, dir, MIN_TITLE, surfaces);
+
         Map<String, String> m = new LinkedHashMap<String, String>();
         put(m, "c_bg", bg);
         put(m, "c_surface", surface);
@@ -263,6 +269,10 @@ final class RandomTheme {
         put(m, "c_holiday", holiday);
         put(m, "c_sub_text", subText);
         put(m, "c_sub_text1", subText1);
+        put(m, "c_day_date", dayDate);
+        put(m, "c_day_name", dayName);
+        put(m, "c_meat", meat);
+        put(m, "c_fast", fast);
         put(m, "c_btn_bg", btnBg);
         put(m, "c_btn_text", btnText);
         put(m, "c_btn_border", btnBorder);
@@ -273,6 +283,10 @@ final class RandomTheme {
         put(m, "c_arrow_pressed", arrowPressed);
         put(m, "c_menu_text", menuText);
         put(m, "c_web_text", webText);
+        put(m, "c_web_body", webText);
+        put(m, "c_set_bg", bg);
+        put(m, "c_set_text", text);
+        put(m, "c_switch", accent);
         put(m, "c_tab_text", tabText);
         put(m, "c_web_link", link);
         put(m, "c_web_visited", visited);

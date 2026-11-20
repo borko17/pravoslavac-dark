@@ -15,32 +15,40 @@ final class Colors {
             { "c_sun_bg",     "Позадина недељне траке",             "272a30" },
             { "c_month_bar",  "Позадина месеца и године",           "1d1f23" },
             { "c_cal_title_bg",   "Позадина наслова испод месеца",  "181a1d" },
-            { "c_btn_bg",     "Позадина дугмади (претходно, календар, следеће)", "b02e31" },
+            { "c_btn_bg",     "Позадина дугмади (претходно, календар, садржај, следеће...)", "b02e31" },
+            { "c_set_bg",     "Позадина подешавања",                "121212" },
             // Текст
             { "c_text",       "Текст календара",                    "e1e6ea" },
+            { "c_day_date",   "Датум у траци дана",                 "e1e6ea" },
+            { "c_day_name",   "Дан у траци дана",                   "e1e6ea" },
+            { "c_meat",       "Мрс (ознака)",                       "e1e6ea" },
+            { "c_fast",       "Постови",                            "ff8a7a" },
             { "c_menu_text",  "Текст менија",                       "f58f92" },
             { "c_sub_text1",  "Текст подменија 1 (при отварању менија)",     "d5dbe0" },
             { "c_sub_text",   "Текст подменија 2)",                 "d5dbe0" },
             { "c_title",      "Текст наслова",                      "f07a7d" },
-            { "c_holiday",    "Празници и постови",                 "ff8a7a" },
+            { "c_holiday",    "Празници",                           "ff8a7a" },
             { "c_sun_text",   "Текст недељне траке",                "f5a0a2" },
             { "c_month_text", "Текст месеца и године",              "ff9a9c" },
             { "c_cal_title_text", "Текст наслова испод месеца",     "f07a7d" },
-            { "c_btn_text",   "Текст дугмади (претходно, календар, следеће)", "ffffff" },
+            { "c_btn_text",   "Текст дугмади (претходно, календар, садржај, следеће...)", "ffffff" },
             { "c_web_mark",   "Ознаке верзија (Српски, Црквенословенски)", "97f07f" },
-            { "c_web_text",   "Листе књига и молитви",              "cfd7de" },
+            { "c_web_text",   "Списак књига и молитви",             "cfd7de" },
+            { "c_web_body",   "Текст житија, књига и молитви",      "cfd7de" },
             { "c_tab_text",   "Слова на табовима",                  "ffffff" },
             { "c_toolbar_text", "Текст горње траке (Православац)",  "ffffff" },
             { "c_web_link",   "Линкови",                            "9194f2" },
             { "c_web_visited","Посећени линкови",                   "e293e7" },
+            { "c_set_text",   "Текст подешавања",                   "e1e6ea" },
             // Елементи
             { "c_bar",        "Табови",                             "1f2538" },
             { "c_scroll",     "Клизач",                             "b02e31" },
             { "c_row_border", "Оквир данашњег дана",                "7546e1" },
-            { "c_btn_border", "Оквир дугмади (претходно, календар, следеће)", "e99a96" },
+            { "c_btn_border", "Оквир дугмади (претходно, календар, садржај, следеће...)", "e99a96" },
             { "c_arrows",     "Стрелице за месеце",                 "ffffff" },
             { "c_cal_icon",   "Иконица календара (нијанса)",       "3d8fd1" },
             { "c_arrow_pressed", "Означена стрелица (при додиру)", "4a4d55" },
+            { "c_switch",     "Прекидачи у опцијама",               "6495ed" },
             // Линије и разделници
             { "c_tab_line",   "Испод активног таба",                "dd3c3f" },
             { "c_red_bar",    "Испод датума у календару",           "b02e31" },
@@ -57,6 +65,28 @@ final class Colors {
             { "Елементи",     "c_bar" },
             { "Линије и разделници", "c_tab_line" },
     };
+
+    /** Boja je u grupi "Текст" (tekstovi za koje se bira i font). */
+    static boolean isText(String key) {
+        boolean in = false;
+        for (String[] c : ALL) {
+            for (String[] g : GROUPS) {
+                if (g[1].equals(c[0])) in = "c_text".equals(g[1]);
+            }
+            if (c[0].equals(key)) return in;
+        }
+        return false;
+    }
+
+    /** Font se bira za sve tekstove osim posjecenih linkova (preglednik ne dozvoljava poseban font za :visited). */
+    static boolean hasFont(String key) {
+        return isText(key) && !"c_web_visited".equals(key) && !"c_set_text".equals(key);
+    }
+
+    /** Tekst koji se prikazuje u listi fontova (tekst podesavanja nema poseban font, a posjeceni linkovi imaju samo napomenu). */
+    static boolean fontListed(String key) {
+        return isText(key) && !"c_set_text".equals(key);
+    }
 
     /** Naslov grupe koja pocinje ovom bojom, ili null. */
     static String groupBefore(String key) {

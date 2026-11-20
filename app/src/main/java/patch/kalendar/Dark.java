@@ -48,6 +48,10 @@ final class Dark {
     static int BTN_BORDER = 0xffe99a96;
     static int ARROWS = 0xffffffff;
     static int CAL_ICON = 0xff3d8fd1;
+    static int DAY_DATE = 0xffe1e6ea;
+    static int DAY_NAME = 0xffe1e6ea;
+    static int MEAT = 0xffe1e6ea;
+    static int FAST = 0xffff8a7a;
     static int TOOLBAR = 0xff212121;
     static int TOOLBAR_TEXT = 0xffffffff;
     static int ARROW_PRESSED = 0xff4a4d55;
@@ -57,6 +61,12 @@ final class Dark {
     static int SCROLL = 0xff8b0000;
     static int WEB_BG = 0xff121212;
     static int WEB_TEXT = 0xffd9d4c7;
+    /** Tekst stranica u WebView-u (zitija, knjige, molitve); WEB_TEXT je samo za spisak knjiga i molitvi. */
+    static int WEB_BODY = 0xffd9d4c7;
+    /** Podesavanja modula: pozadina, tekst i boja prekidaca (ne diraju kalendar). */
+    static int SET_BG = 0xff121212;
+    static int SET_TEXT = 0xffe1e6ea;
+    static int SET_SWITCH = 0xff6495ed;
     static int WEB_HEAD2 = 0xffe6e1d6;
     static int WEB_LINK = 0xff8ab4f8;
     static int WEB_VISITED = 0xffc4a5f0;
@@ -93,6 +103,10 @@ final class Dark {
         BTN_BORDER = Prefs.color("c_btn_border");
         ARROWS = Prefs.color("c_arrows");
         CAL_ICON = Prefs.color("c_cal_icon");
+        DAY_DATE = Prefs.color("c_day_date");
+        DAY_NAME = Prefs.color("c_day_name");
+        MEAT = Prefs.color("c_meat");
+        FAST = Prefs.color("c_fast");
         TOOLBAR = Prefs.color("c_toolbar");
         TOOLBAR_TEXT = Prefs.color("c_toolbar_text");
         ARROW_PRESSED = Prefs.color("c_arrow_pressed");
@@ -102,6 +116,10 @@ final class Dark {
         SCROLL = Prefs.color("c_scroll");
         WEB_BG = Prefs.color("c_web_bg");
         WEB_TEXT = Prefs.color("c_web_text");
+        WEB_BODY = Prefs.color("c_web_body");
+        SET_BG = Prefs.color("c_set_bg");
+        SET_TEXT = Prefs.color("c_set_text");
+        SET_SWITCH = Prefs.color("c_switch");
         WEB_HEAD2 = Prefs.color("c_web_head2");
         WEB_LINK = Prefs.color("c_web_link");
         WEB_VISITED = Prefs.color("c_web_visited");
@@ -247,10 +265,25 @@ final class Dark {
         return (a << 24) | (clamp(ri) << 16) | (clamp(gi) << 8) | clamp(bi);
     }
 
+    /**
+     * Da li je boja (tacno) jedna od pozadinskih boja same teme. Takve boje je korisnik sam zadao (ukucao ili izabrao),
+     * pa se ne smiju ponovo pretvarati kao originalne svijetle boje aplikacije (inace npr. svijetla pozadina menija
+     * postane pozadina kalendara).
+     */
+    static boolean isThemeBg(int c) {
+        if ((c >>> 24) != 0xff) return false;
+        int rgb = c & 0xffffff;
+        return rgb == (BG & 0xffffff) || rgb == (SURFACE & 0xffffff) || rgb == (ROW & 0xffffff)
+                || rgb == (WEB_BG & 0xffffff) || rgb == (TOOLBAR & 0xffffff) || rgb == (SUN_BG & 0xffffff)
+                || rgb == (MONTH_BAR & 0xffffff) || rgb == (CAL_TITLE_BG & 0xffffff) || rgb == (BAR & 0xffffff)
+                || rgb == (BAR_DARK & 0xffffff) || rgb == (BTN_BG & 0xffffff) || rgb == (ARROW_PRESSED & 0xffffff);
+    }
+
     /** Svijetla pozadina -> tamna (zadrzava nijansu). */
     static int mapBg(int c) {
         int a = c >>> 24;
         if (a < 20) return c;
+        if (isThemeBg(c)) return c;   // boja teme (zadata u editoru): ne diraj, ma koliko bila svijetla
         float[] hsl = toHsl(c);
         if (hsl[2] < 0.6f) return c;
         if (light()) return (a << 24) | (BG & 0xffffff);   // svijetla tema: svijetla pozadina -> pozadina teme
@@ -337,18 +370,192 @@ final class Dark {
         return s.contains("црквени календар") && s.contains("годин");
     }
 
-    /** Boja teksta za TextView u nedeljnoj traci / traci mjeseca / naslovu kalendara, ili 0 ako nije ni u jednom. */
-    static int roleColor(View tv) {
+    /** Kljuc teksta (iz Colors) za TextView u nedeljnoj traci / traci mjeseca / naslovu kalendara / gornjoj traci, ili null. */
+    static String roleKey(View tv) {
         View p = tv;
         for (int i = 0; i < 5 && p != null; i++) {
-            if (i == 0 && p.getTag(TAG_TITLE) != null) return CAL_TITLE_TEXT;
-            if (p.getTag(TAG_SUN) != null) return SUN_TEXT;
-            if (p.getTag(TAG_BAR) != null) return TOOLBAR_TEXT;
-            if (isMonthBarId(p)) return MONTH_TEXT;
+            if (i == 0 && p.getTag(TAG_TITLE) != null) return "c_cal_title_text";
+            if (p.getTag(TAG_SUN) != null) return "c_sun_text";
+            if (p.getTag(TAG_BAR) != null) return "c_toolbar_text";
+            if (isMonthBarId(p)) return "c_month_text";
             Object par = p.getParent();
             p = par instanceof View ? (View) par : null;
         }
-        return 0;
+        return null;
+    }
+
+    /** Boja teksta za kljuc iz roleKey(), ili 0. */
+    static int colorOfKey(String k) {
+        if (k == null) return 0;
+        switch (k) {
+            case "c_cal_title_text": return CAL_TITLE_TEXT;
+            case "c_sun_text": return SUN_TEXT;
+            case "c_toolbar_text": return TOOLBAR_TEXT;
+            case "c_month_text": return MONTH_TEXT;
+            default: return 0;
+        }
+    }
+
+    /** Boja teksta za TextView u nedeljnoj traci / traci mjeseca / naslovu kalendara, ili 0 ako nije ni u jednom. */
+    static int roleColor(View tv) {
+        return colorOfKey(roleKey(tv));
+    }
+
+    // ------------------------------------------------------------------ datum, dan i oznake (mrs / postovi) u kalendaru
+
+    static final int TAG_TROLE = 0x7e0c0a0c;
+
+    private static final java.util.regex.Pattern DAY_DATE_RE = java.util.regex.Pattern.compile(
+            "^\\d{1,2}\\.\\s*\\p{L}+\\.?\\s*\\(\\d{1,2}\\.\\s*\\p{L}+\\.?\\)\\s*\\d{4}\\.?$");
+    private static final java.util.regex.Pattern FAST_RE = java.util.regex.Pattern.compile(
+            "^(?!св\\b)[^\\d]{0,24}(вода|уље|уљем|вино|риба|рибу|посно|пост|сир|јаја|млеко|млијеко)[^\\d]{0,24}$");
+    private static final java.util.Set<String> DAY_NAMES = new java.util.HashSet<String>(java.util.Arrays.asList(
+            "недеља", "недјеља", "понедељак", "понедјељак", "уторак", "среда", "сриједа", "четвртак", "петак", "субота"));
+
+    /**
+     * Ključ teksta prema sadržaju (tekst dolazi iz aplikacije): datum u traci dana, dan u istoj traci, oznaka "мрс" ili
+     * oznake postova (вода, уље и вино...); null ako tekst nije ništa od toga.
+     */
+    static String textRole(CharSequence cs) {
+        if (cs == null) return null;
+        int n = cs.length();
+        if (n == 0 || n > 60) return null;
+        String s = cs.toString().trim();
+        if (DAY_DATE_RE.matcher(s).matches()) return "c_day_date";
+        String l = s.toLowerCase(java.util.Locale.ROOT);
+        if (DAY_NAMES.contains(l)) return "c_day_name";
+        if ("мрс".equals(l)) return "c_meat";
+        if (l.length() <= 30 && FAST_RE.matcher(l).matches()) return "c_fast";
+        return null;
+    }
+
+    static int colorOfRole(String k) {
+        if (k == null) return 0;
+        switch (k) {
+            case "c_day_date": return DAY_DATE;
+            case "c_day_name": return DAY_NAME;
+            case "c_meat": return MEAT;
+            case "c_fast": return FAST;
+            default: return 0;
+        }
+    }
+
+    private static boolean isFixedRole(String k) {
+        return "c_meat".equals(k) || "c_fast".equals(k);
+    }
+
+    /** Praznicni (svijetlocrveni) datum i dan zadržavaju boju praznika; ostali dobijaju boju svoje stavke. */
+    private static boolean isHolidayText(TextView tv) {
+        Object o = tv.getTag(TAG_ORIG);
+        int orig = o instanceof Integer ? ((Integer) o).intValue() : tv.getTextColors().getDefaultColor();
+        return "c_holiday".equals(fgKey(orig)) || (tv.getCurrentTextColor() & 0xffffff) == (HOLIDAY & 0xffffff);
+    }
+
+    static final int TAG_SETTINGS = 0x7e0c0a0e;
+
+    static boolean inSettings(View v) {
+        if (v == null) return false;
+        try {
+            for (View p = v; p != null; p = p.getParent() instanceof View ? (View) p.getParent() : null) {
+                if (p.getTag(TAG_SETTINGS) != null) return true;
+                String name = p.getClass().getName();
+                if (name.contains("SettingsUi") || name.contains("ColorPicker")) return true;
+            }
+        } catch (Throwable ignored) {
+        }
+        return false;
+    }
+
+    /** Font i boja za tekst koji je datum, dan ili oznaka; vraća ključ ili null (tada tekst nije ništa od toga). */
+    static String applyTextRole(TextView tv, CharSequence cs) {
+        if (inSettings(tv)) return null;
+        String tk = textRole(cs);
+        if (tk == null) {
+            if (tv.getTag(TAG_TROLE) != null) tv.setTag(TAG_TROLE, null);
+            return null;
+        }
+        tv.setTag(TAG_TROLE, tk);
+        Fonts.apply(tv, tk);
+        int rc = colorOfRole(tk);
+        if (!isFixedRole(tk) && isHolidayText(tv)) rc = HOLIDAY;
+        if (tv.getCurrentTextColor() != rc) {
+            applying = true;
+            try {
+                tv.setTextColor(rc);
+            } finally {
+                applying = false;
+            }
+        }
+        return tk;
+    }
+
+    /** Ključ fonta za tekst koji je (većim dijelom) obojen spanovima praznične / naslovne crvene boje, ili null. */
+    static String spanFontKey(CharSequence cs) {
+        if (!(cs instanceof Spanned) || cs.length() == 0) return null;
+        Spanned sp = (Spanned) cs;
+        int hol = 0;
+        int tit = 0;
+        for (ForegroundColorSpan f : sp.getSpans(0, sp.length(), ForegroundColorSpan.class)) {
+            int len = sp.getSpanEnd(f) - sp.getSpanStart(f);
+            String k = fgKey(f.getForegroundColor());
+            if ("c_holiday".equals(k)) hol += len;
+            else if ("c_title".equals(k)) tit += len;
+        }
+        int half = cs.length() / 2;
+        if (hol >= half && hol >= tit && hol > 0) return "c_holiday";
+        if (tit >= half && tit > 0) return "c_title";
+        return null;
+    }
+
+    // ------------------------------------------------------------------ slova na tabovima (font)
+
+    private static final int TAG_TABFONT = 0x7e0c0a0d;
+
+    private static void tabFonts(View v) {
+        if (v instanceof TextView) Fonts.apply((TextView) v, "c_tab_text");
+        if (v instanceof ViewGroup) {
+            ViewGroup g = (ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) tabFonts(g.getChildAt(i));
+        }
+    }
+
+    /** Tabovi se prave poslije prvog crtanja, pa se font primjenjuje i poslije svakog rasporeda trake sa tabovima. */
+    static void watchTabFonts(View tabLayout) {
+        tabFonts(tabLayout);
+        if (tabLayout.getTag(TAG_TABFONT) != null) return;
+        tabLayout.setTag(TAG_TABFONT, Boolean.TRUE);
+        tabLayout.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override
+            public void onLayoutChange(View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
+                tabFonts(v);
+            }
+        });
+    }
+
+    /** TextView je unutar TabLayout-a (slova na tabovima). */
+    static boolean inTabs(View tv) {
+        Object p = tv.getParent();
+        for (int i = 0; i < 4 && p instanceof View; i++) {
+            if (p.getClass().getName().endsWith("TabLayout")) return true;
+            p = ((View) p).getParent();
+        }
+        return false;
+    }
+
+    /**
+     * Kljuc teksta za izvornu (ili vec temu) boju teksta u kalendaru: obican tamni tekst -> \"Текст календара\",
+     * tamnocrveni -> \"Празници и постови\" / \"Текст наслова\" (isto razlikovanje kao u mapFg), ili null.
+     */
+    static String fgKey(int c) {
+        int rgb = c & 0xffffff;
+        if (rgb == (TEXT & 0xffffff)) return "c_text";            // resurs \"textcolormain\" je vec zamijenjen
+        if (rgb == (HOLIDAY & 0xffffff)) return "c_holiday";
+        if (rgb == (TITLE & 0xffffff)) return "c_title";
+        if (lum(c) >= 0.5f) return null;
+        float[] hsl = toHsl(c);
+        if (hsl[1] < 0.2f) return "c_text";
+        if (hsl[1] >= 0.6f && (hsl[0] <= 15f || hsl[0] >= 345f)) return hsl[2] >= 0.36f ? "c_holiday" : "c_title";
+        return null;
     }
 
     /** Svi ForegroundColorSpan-ovi u tekstu dobijaju datu boju (tekst traka ima jednu boju). */
@@ -373,17 +580,18 @@ final class Dark {
     }
 
     /** Postavlja boju teksta (i spanova) svim TextView-ovima unutar v (ukljucujuci v). */
-    private static void recolorTexts(View v, int color) {
+    private static void recolorTexts(View v, int color, String fontKey) {
         if (v instanceof TextView) {
             TextView tv = (TextView) v;
             if (tv.getCurrentTextColor() != color) tv.setTextColor(color);
             CharSequence t = tv.getText();
             CharSequence f = spansToColor(t, color);
             if (f != t) tv.setText(f);
+            Fonts.apply(tv, fontKey);
         }
         if (v instanceof ViewGroup) {
             ViewGroup g = (ViewGroup) v;
-            for (int i = 0; i < g.getChildCount(); i++) recolorTexts(g.getChildAt(i), color);
+            for (int i = 0; i < g.getChildCount(); i++) recolorTexts(g.getChildAt(i), color, fontKey);
         }
     }
 
@@ -395,7 +603,7 @@ final class Dark {
         if (!(d instanceof ColorDrawable) || ((ColorDrawable) d).getColor() != SUN_BG) {
             v.setBackground(new ColorDrawable(SUN_BG));
         }
-        if (first) recolorTexts(v, SUN_TEXT);
+        if (first) recolorTexts(v, SUN_TEXT, "c_sun_text");
     }
 
     /**
@@ -676,6 +884,17 @@ final class Dark {
         return 0;
     }
 
+    /** Kljuc teksta (iz Colors) za tekst bocnog menija: isto razlikovanje kao menuColor(), ili null. */
+    static String menuKey(int c, boolean stable) {
+        String sub = stable ? "c_sub_text" : "c_sub_text1";
+        if ((c & 0xffffff) == (TEXT & 0xffffff)) return sub;
+        if (lum(c) >= 0.5f) return null;
+        float[] hsl = toHsl(c);
+        if (hsl[1] < 0.2f) return sub;
+        if (hsl[1] >= 0.6f && (hsl[0] <= 15f || hsl[0] >= 345f)) return hsl[2] >= 0.36f ? sub : "c_menu_text";
+        return null;
+    }
+
     /** ListView sa crvenim razdjelnikom = lista molitvi i knjiga. */
     static final int TAG_BOOKLIST = 0x7e0c0a04;
 
@@ -688,6 +907,7 @@ final class Dark {
                 int cur = tv.getCurrentTextColor();
                 boolean ours = tv.getTag(TAG_ORIG) instanceof Integer || (cur & 0xffffff) == (TEXT & 0xffffff)
                         || (cur & 0xffffff) == (HOLIDAY & 0xffffff) || (cur & 0xffffff) == (TITLE & 0xffffff);
+                if (ours) Fonts.apply(tv, "c_web_text");
                 if (ours && cur != WEB_TEXT) {
                     applying = true;
                     try {
@@ -713,6 +933,12 @@ final class Dark {
      */
     static void styleMenu(View v, boolean stable) {
         if (v == null || !Prefs.dark()) return;
+        styleMenuTree(v, stable);
+        alignMenuRow(v);
+    }
+
+    private static void styleMenuTree(View v, boolean stable) {
+        if (v == null || !Prefs.dark()) return;
         try {
             if (v instanceof TextView) {
                 TextView tv = (TextView) v;
@@ -720,6 +946,7 @@ final class Dark {
                 int orig = o instanceof Integer ? ((Integer) o).intValue() : tv.getTextColors().getDefaultColor();
                 if (!(o instanceof Integer)) tv.setTag(TAG_ORIG, Integer.valueOf(orig));   // da drugi prolaz vidi izvornu boju
                 int mc = menuColor(orig, stable);
+                Fonts.apply(tv, menuKey(orig, stable));
                 if (mc != 0 && tv.getCurrentTextColor() != mc) {
                     applying = true;
                     try {
@@ -731,8 +958,273 @@ final class Dark {
             }
             if (v instanceof ViewGroup) {
                 ViewGroup g = (ViewGroup) v;
-                for (int i = 0; i < g.getChildCount(); i++) styleMenu(g.getChildAt(i), stable);
+                for (int i = 0; i < g.getChildCount(); i++) styleMenuTree(g.getChildAt(i), stable);
             }
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
+    }
+
+    // ------------------------------------------------------------------ poravnanje ikonica i teksta u meniju
+
+    private static final int TAG_MENUALIGN = 0x7e0c0a31;
+
+    /** Ikonice (i strelicu) reda menija poravnava po vertikali sa sredinom slova glavnog teksta reda. */
+    static void alignMenuRow(final View row) {
+        if (!(row instanceof ViewGroup)) return;
+        try {
+            if (row.getTag(TAG_MENUALIGN) == null) {
+                row.setTag(TAG_MENUALIGN, Boolean.TRUE);
+                row.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+                    @Override
+                    public void onLayoutChange(View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
+                        doAlignMenuRow(v);
+                    }
+                });
+            }
+            doAlignMenuRow(row);
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
+    }
+
+    private static void collectRowViews(View v, java.util.List<TextView> tvs, java.util.List<ImageView> ivs) {
+        if (v.getVisibility() == View.GONE) return;
+        if (v instanceof TextView) {
+            TextView tv = (TextView) v;
+            if (tv.getText() != null && tv.getText().length() > 0) tvs.add(tv);
+        } else if (v instanceof ImageView) {
+            ivs.add((ImageView) v);
+        }
+        if (v instanceof ViewGroup) {
+            ViewGroup g = (ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) collectRowViews(g.getChildAt(i), tvs, ivs);
+        }
+    }
+
+    /** Pomak gornje ivice view-a u odnosu na red (bez translationY). */
+    private static int topInRow(View v, View row) {
+        int y = 0;
+        View c = v;
+        while (c != null && c != row) {
+            y += c.getTop();
+            Object p = c.getParent();
+            if (!(p instanceof View)) return Integer.MIN_VALUE;
+            View pv = (View) p;
+            if (pv != row) y -= pv.getScrollY();
+            c = pv;
+        }
+        return c == row ? y : Integer.MIN_VALUE;
+    }
+
+    private static void doAlignMenuRow(View row) {
+        try {
+            if (!Prefs.dark() || row.getHeight() <= 0) return;
+            java.util.List<TextView> tvs = new java.util.ArrayList<TextView>();
+            java.util.List<ImageView> ivs = new java.util.ArrayList<ImageView>();
+            collectRowViews(row, tvs, ivs);
+            if (tvs.isEmpty() || ivs.isEmpty()) return;
+            TextView main = tvs.get(0);
+            for (TextView t : tvs) {
+                if (t.getTextSize() > main.getTextSize()) main = t;
+            }
+            if (main.getLayout() == null || main.getHeight() <= 0) return;
+            int base = main.getBaseline();
+            if (base < 0) return;
+            int mt = topInRow(main, row);
+            if (mt == Integer.MIN_VALUE) return;
+            Rect cap = new Rect();
+            main.getPaint().getTextBounds("\u041c\u041e", 0, 2, cap);   // visina velikih slova (ћирилица)
+            float textCenter = mt + base - cap.height() / 2f;
+            for (ImageView iv : ivs) {
+                if (iv.getHeight() <= 0) continue;
+                if (iv.getHeight() >= row.getHeight() * 0.9f && iv.getWidth() >= row.getWidth() * 0.9f) continue;
+                int it = topInRow(iv, row);
+                if (it == Integer.MIN_VALUE) continue;
+                float iconCenter = it + iv.getHeight() / 2f;
+                float dy = textCenter - iconCenter;
+                if (Math.abs(iv.getTranslationY() - dy) > 0.5f) iv.setTranslationY(dy);
+            }
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
+    }
+
+    // ------------------------------------------------------------------ traka mjeseca: format teksta, centriranje, razmak ikonice
+
+    private static final int TAG_MONTHHOOK = 0x7e0c0a32;
+    private static final java.util.regex.Pattern MONTH_RE = java.util.regex.Pattern.compile(
+            "^\\s*(\\p{L}+)\\s*[.,]?\\s*(\\d{4})\\s*\\.?\\s*$");
+
+    /** "Новембар.2026" -> "Новембар 2026." */
+    static CharSequence fixMonthText(CharSequence cs) {
+        try {
+            if (cs == null) return cs;
+            java.util.regex.Matcher m = MONTH_RE.matcher(cs.toString());
+            if (!m.matches()) return cs;
+            String want = m.group(1) + " " + m.group(2) + ".";
+            if (want.contentEquals(cs)) return cs;
+            if (!(cs instanceof Spanned)) return want;
+            SpannableStringBuilder sb = new SpannableStringBuilder(cs);
+            int n = sb.length();
+            int e = m.end(2);
+            sb.replace(e, n, ".");
+            sb.replace(m.end(1), m.start(2), " ");
+            return sb;
+        } catch (Throwable t) {
+            return cs;
+        }
+    }
+
+    /** Menja samo prikazani tekst (Новембар.2026 -> Новембар 2026.); tekst u TextView-u ostaje neizmenjen. */
+    private static final class MonthFormat implements android.text.method.TransformationMethod {
+        private final android.text.method.TransformationMethod inner;
+
+        MonthFormat(android.text.method.TransformationMethod inner) {
+            this.inner = inner;
+        }
+
+        @Override
+        public CharSequence getTransformation(CharSequence source, View view) {
+            CharSequence r = inner != null ? inner.getTransformation(source, view) : source;
+            return fixMonthText(r);
+        }
+
+        @Override
+        public void onFocusChanged(View view, CharSequence sourceText, boolean focused, int direction, Rect previouslyFocusedRect) {
+            if (inner != null) inner.onFocusChanged(view, sourceText, focused, direction, previouslyFocusedRect);
+        }
+    }
+
+    private static View monthRow(View v) {
+        View p = v;
+        for (int i = 0; i < 6 && p != null; i++) {
+            if (isMonthBarId(p)) return p;
+            Object par = p.getParent();
+            p = par instanceof View ? (View) par : null;
+        }
+        return null;
+    }
+
+    private static void hookMonthBar(final TextView tv) {
+        try {
+            final View row = monthRow(tv);
+            if (row == null) return;
+            View.OnLayoutChangeListener l = new View.OnLayoutChangeListener() {
+                @Override
+                public void onLayoutChange(View v, int a, int b, int c, int d, int e, int f, int g, int h) {
+                    alignMonthBar(row);
+                }
+            };
+            if (row.getTag(TAG_MONTHHOOK) == null) {
+                row.setTag(TAG_MONTHHOOK, Boolean.TRUE);
+                row.addOnLayoutChangeListener(l);
+            }
+            if (tv.getTag(TAG_MONTHHOOK) == null) {
+                tv.setTag(TAG_MONTHHOOK, Boolean.TRUE);
+                tv.addOnLayoutChangeListener(l);
+                if (!(tv.getTransformationMethod() instanceof MonthFormat)) {
+                    tv.setTransformationMethod(new MonthFormat(tv.getTransformationMethod()));
+                }
+            }
+            alignMonthBar(row);
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
+    }
+
+    private static int leftInRow(View v, View row) {
+        int x = 0;
+        View c = v;
+        while (c != null && c != row) {
+            x += c.getLeft();
+            Object p = c.getParent();
+            if (!(p instanceof View)) return Integer.MIN_VALUE;
+            View pv = (View) p;
+            if (pv != row) x -= pv.getScrollX();
+            c = pv;
+        }
+        return c == row ? x : Integer.MIN_VALUE;
+    }
+
+    /** Mjesec i godina tacno na sredini trake; ikonica kalendara odmaknuta od strelice. */
+    static void alignMonthBar(View row) {
+        try {
+            if (!Prefs.dark() || row.getWidth() <= 0) return;
+            java.util.List<TextView> tvs = new java.util.ArrayList<TextView>();
+            java.util.List<ImageView> ivs = new java.util.ArrayList<ImageView>();
+            collectRowViews(row, tvs, ivs);
+            if (tvs.isEmpty()) return;
+            TextView main = tvs.get(0);
+            for (TextView t : tvs) {
+                if (t.getTextSize() > main.getTextSize()) main = t;
+            }
+            ImageView icon = null;
+            java.util.List<ImageView> arrows = new java.util.ArrayList<ImageView>();
+            for (ImageView iv : ivs) {
+                if (iv.getWidth() <= 0 || iv.getDrawable() == null) continue;
+                styleMonthImage(iv);
+                if ("icon".equals(iv.getTag(TAG_IMGKIND))) icon = iv; else arrows.add(iv);
+            }
+            float density = row.getResources().getDisplayMetrics().density;
+
+            // razmak ikonice od najblize strelice
+            if (icon != null) {
+                int il = leftInRow(icon, row);
+                if (il != Integer.MIN_VALUE) {
+                    float ic = il + icon.getWidth() / 2f;
+                    ImageView near = null;
+                    float best = Float.MAX_VALUE;
+                    for (ImageView a : arrows) {
+                        int al = leftInRow(a, row);
+                        if (al == Integer.MIN_VALUE) continue;
+                        float dist = Math.abs(al + a.getWidth() / 2f - ic);
+                        if (dist < best) {
+                            best = dist;
+                            near = a;
+                        }
+                    }
+                    float tx = 0f;
+                    if (near != null) {
+                        int al = leftInRow(near, row);
+                        float gap;
+                        float dir;
+                        if (al >= il) {                      // strelica desno od ikonice
+                            gap = al - (il + icon.getWidth());
+                            dir = -1f;
+                        } else {                             // strelica lijevo od ikonice
+                            gap = il - (al + near.getWidth());
+                            dir = 1f;
+                        }
+                        float want = 14f * density;
+                        if (gap < want) tx = dir * (want - gap);
+                    }
+                    if (Math.abs(icon.getTranslationX() - tx) > 0.5f) icon.setTranslationX(tx);
+                }
+            }
+
+            // tekst na sredinu trake
+            if (main.getLayout() == null || main.getLineCount() < 1 || main.getWidth() <= 0) return;
+            int ml = leftInRow(main, row);
+            if (ml == Integer.MIN_VALUE) return;
+            android.text.Layout lay = main.getLayout();
+            float left = ml + main.getCompoundPaddingLeft() + lay.getLineLeft(0);
+            float center = left + lay.getLineWidth(0) / 2f;
+            float dx = row.getWidth() / 2f - center;
+            // ne smije se nalijegati na ikonicu
+            if (icon != null) {
+                int il = leftInRow(icon, row);
+                if (il != Integer.MIN_VALUE) {
+                    float iconL = il + icon.getTranslationX();
+                    float iconR = iconL + icon.getWidth();
+                    float tl = left + dx;
+                    float tr = tl + lay.getLineWidth(0);
+                    float pad = 4f * density;
+                    if (iconL > center && tr > iconL - pad) dx -= tr - (iconL - pad);
+                    else if (iconR < center && tl < iconR + pad) dx += (iconR + pad) - tl;
+                }
+            }
+            if (Math.abs(main.getTranslationX() - dx) > 0.5f) main.setTranslationX(dx);
         } catch (Throwable t) {
             XposedBridge.log(t);
         }
@@ -871,7 +1363,7 @@ final class Dark {
             } catch (Throwable ignore) {
                 // nema te metode: tekst se boji preko TextView-ova unutar trake
             }
-            recolorTexts(v, TOOLBAR_TEXT);
+            recolorTexts(v, TOOLBAR_TEXT, "c_toolbar_text");
             v.invalidate();
             Object par2 = v.getParent();
             if (par2 instanceof View) ((View) par2).invalidate();
@@ -926,6 +1418,7 @@ final class Dark {
             markSunday(v);
             return;
         }
+        if (avg != 0 && isThemeBg(avg)) return;          // drawable u boji teme
         float dl = avg == 0 ? -1f : lum(avg);
         if (dl < 0.6f) return;
         if (d instanceof BitmapDrawable && ((BitmapDrawable) d).getIntrinsicWidth() > 400) {
@@ -959,6 +1452,7 @@ final class Dark {
     }
 
     private static void fixOne(View v) {
+        if (inSettings(v)) return;
         fixBackground(v);
         if (v.getClass().getName().endsWith("TabLayout")) {
             try {
@@ -967,14 +1461,17 @@ final class Dark {
             } catch (Throwable ignored) {
             }
             setTabIndicator(v);
+            watchTabFonts(v);
         }
         if (v instanceof ImageView) styleMonthImage((ImageView) v);
         styleToolbar(v);
         if (v instanceof TextView) {
             TextView tv = (TextView) v;
-            int role = roleColor(tv);
+            String rk = roleKey(tv);
+            int role = colorOfKey(rk);
             if (role == 0 && isCalTitleText(tv.getText())) {
                 styleTitle(tv);
+                rk = "c_cal_title_text";
                 role = CAL_TITLE_TEXT;
             }
             if (role != 0) {
@@ -982,9 +1479,15 @@ final class Dark {
                 CharSequence t = tv.getText();
                 CharSequence f = spansToColor(t, role);
                 if (f != t) tv.setText(f);
+                Fonts.apply(tv, rk);
                 return;
             }
+            if (applyTextRole(tv, tv.getText()) != null) return;   // datum, dan ili oznaka: vlastiti font i boja
             ColorStateList cur = tv.getTextColors();
+            // font: slova na tabovima, inace prema (izvornoj) boji teksta; vec dodijeljen font se samo osvjezi
+            String fk = inTabs(tv) ? "c_tab_text" : fgKey(cur.getDefaultColor());
+            if (fk != null) Fonts.apply(tv, fk);
+            else Fonts.refresh(tv);
             ColorStateList mapped = mapCsl(cur);
             if (mapped != cur) {
                 tv.setTag(TAG_ORIG, Integer.valueOf(cur.getDefaultColor()));   // izvorna boja (za tekst menija)
@@ -1071,6 +1574,7 @@ final class Dark {
 
     /** Prolazi kroz hijerarhiju view-ova i popravlja boje. */
     static void walk(View v) {
+        if (inSettings(v)) return;
         try {
             fixOne(v);
             if (v instanceof ViewGroup) {
@@ -1086,12 +1590,25 @@ final class Dark {
 
     /** Tekst koji se postavlja u TextView: trake kalendara (nedelja, mesec, naslov) imaju svoje boje, ostalo opste. */
     static CharSequence fixText(TextView tv, CharSequence cs) {
-        int role = roleColor(tv);
+        if (inSettings(tv)) return cs;
+        String rk = roleKey(tv);
+        int role = colorOfKey(rk);
         if (role == 0 && isCalTitleText(cs)) {
             styleTitle(tv);
+            rk = "c_cal_title_text";
             role = CAL_TITLE_TEXT;
         }
-        if (role != 0) return spansToColor(cs, role);
+        if (role != 0) {
+            Fonts.apply(tv, rk);
+            if ("c_month_text".equals(rk)) {
+                hookMonthBar(tv);   // format se menja samo u prikazu; getText() ostaje originalan (aplikacija ga parsira)
+            }
+            return spansToColor(cs, role);
+        }
+        if (applyTextRole(tv, cs) == null) {
+            String sk = spanFontKey(cs);   // crveni spanovi (praznici / naslovi): font te stavke
+            if (sk != null) Fonts.apply(tv, sk);
+        }
         return fixSpans(cs);
     }
 
@@ -1137,5 +1654,133 @@ final class Dark {
             }
         }
         return sb;
+    }
+
+    // ------------------------------------------------------------------ samo fontovi (tema "Православац")
+    // Boje aplikacije se ne diraju; ovdje se samo prepoznaje uloga teksta (isto kao gore) i primjenjuje font/velicina.
+
+    /** Svi TextView-ovi unutar v (ukljucujuci v) dobijaju font teksta sa datim kljucem. */
+    private static void fontsIn(View v, String key) {
+        if (v instanceof TextView) Fonts.apply((TextView) v, key);
+        if (v instanceof ViewGroup) {
+            ViewGroup g = (ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) fontsIn(g.getChildAt(i), key);
+        }
+    }
+
+    /** Pozadina nedeljne trake (originalna boja): samo oznaka i font teksta unutar nje. */
+    static void fontSunday(View v) {
+        boolean first = v.getTag(TAG_SUN) == null;
+        v.setTag(TAG_SUN, Boolean.TRUE);
+        if (first) fontsIn(v, "c_sun_text");
+    }
+
+    /** Datum, dan ili oznaka (mrs / postovi): samo font. Vraca kljuc ili null. */
+    static String fontTextRole(TextView tv, CharSequence cs) {
+        if (inSettings(tv)) return null;
+        String tk = textRole(cs);
+        if (tk == null) {
+            if (tv.getTag(TAG_TROLE) != null) tv.setTag(TAG_TROLE, null);
+            return null;
+        }
+        tv.setTag(TAG_TROLE, tk);
+        Fonts.apply(tv, tk);
+        return tk;
+    }
+
+    /** Tekst koji se postavlja u TextView (tema "Православац"): samo font, tekst i boje ostaju netaknuti. */
+    static void fontText(TextView tv, CharSequence cs) {
+        if (inSettings(tv)) return;
+        String rk = roleKey(tv);
+        if (rk == null && isCalTitleText(cs)) {
+            tv.setTag(TAG_TITLE, Boolean.TRUE);
+            rk = "c_cal_title_text";
+        }
+        if (rk != null) {
+            Fonts.apply(tv, rk);
+            return;
+        }
+        if (fontTextRole(tv, cs) == null) {
+            String sk = spanFontKey(cs);
+            if (sk != null) Fonts.apply(tv, sk);
+        }
+    }
+
+    /** Red bocnog menija (tema "Православац"): font prema originalnoj boji teksta. */
+    static void fontMenu(View v, boolean stable) {
+        if (v == null) return;
+        try {
+            if (v instanceof TextView) {
+                TextView tv = (TextView) v;
+                Fonts.apply(tv, menuKey(tv.getTextColors().getDefaultColor(), stable));
+            }
+            if (v instanceof ViewGroup) {
+                ViewGroup g = (ViewGroup) v;
+                for (int i = 0; i < g.getChildCount(); i++) fontMenu(g.getChildAt(i), stable);
+            }
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
+    }
+
+    /** Red liste molitvi i knjiga (tema "Православац"): font stavki liste. */
+    static void fontBook(View v) {
+        if (v == null) return;
+        try {
+            if (v instanceof TextView) {
+                TextView tv = (TextView) v;
+                if (fgKey(tv.getTextColors().getDefaultColor()) != null) Fonts.apply(tv, "c_web_text");
+            }
+            if (v instanceof ViewGroup) {
+                ViewGroup g = (ViewGroup) v;
+                for (int i = 0; i < g.getChildCount(); i++) fontBook(g.getChildAt(i));
+            }
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
+    }
+
+    private static void fontsOne(View v) {
+        if (v.getClass().getName().endsWith("TabLayout")) watchTabFonts(v);
+        if (isToolbar(v)) {
+            v.setTag(TAG_BAR, Boolean.TRUE);
+            fontsIn(v, "c_toolbar_text");
+        }
+        if (v instanceof ListView && !(v instanceof android.widget.ExpandableListView)) {
+            Drawable div = ((ListView) v).getDivider();
+            if (div instanceof ColorDrawable && (((ColorDrawable) div).getColor() & 0xffffff) == 0xdc143c) {
+                v.setTag(TAG_BOOKLIST, Boolean.TRUE);   // lista molitvi i knjiga
+            }
+        }
+        if (v instanceof TextView) {
+            TextView tv = (TextView) v;
+            String rk = roleKey(tv);
+            if (rk == null && isCalTitleText(tv.getText())) {
+                tv.setTag(TAG_TITLE, Boolean.TRUE);
+                rk = "c_cal_title_text";
+            }
+            if (rk != null) {
+                Fonts.apply(tv, rk);
+                return;
+            }
+            if (fontTextRole(tv, tv.getText()) != null) return;
+            String fk = inTabs(tv) ? "c_tab_text" : fgKey(tv.getTextColors().getDefaultColor());
+            if (fk != null) Fonts.apply(tv, fk);
+            else Fonts.refresh(tv);
+        }
+    }
+
+    /** Prolaz kroz hijerarhiju view-ova samo zbog fontova (tema "Православац"): ni jedna boja se ne mijenja. */
+    static void walkFonts(View v) {
+        if (v == null || inSettings(v)) return;
+        try {
+            fontsOne(v);
+            if (v instanceof ViewGroup) {
+                ViewGroup g = (ViewGroup) v;
+                for (int i = 0; i < g.getChildCount(); i++) walkFonts(g.getChildAt(i));
+            }
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
     }
 }

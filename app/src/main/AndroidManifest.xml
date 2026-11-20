@@ -1,12 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Samo za preuzimanje fontova (Google Fonts) preko modula (prozor u Pravoslavcu poziva FontProvider); Pravoslavac ovu dozvolu nema. -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="false"
         android:icon="@drawable/ic_launcher"
         android:label="Pravoslavac Dark">
 
+        <!-- Bez ikone u launcheru: samo kratko obavjestenje iz LSPosed-a (podesavanja modula); fontovi se preuzimaju u Pravoslavcu. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="Pravoslavac Dark">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="de.robv.android.xposed.category.MODULE_SETTINGS" />
+            </intent-filter>
+        </activity>
+
+        <!-- Nevidljiva: otkriva modul Pravoslavcu (vidljivost paketa), odmah se zatvara. -->
+        <activity
+            android:name=".WarmupActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <!-- Most za prozor fontova u Pravoslavcu: Pravoslavac trazi od modula mrezu (pozivaoci: samo Pravoslavac i Zitije svetih). -->
+        <provider
+            android:name=".FontProvider"
+            android:authorities="io.github.borko17.pravoslavac.dark.fonts"
+            android:exported="true" />
 
         <meta-data
             android:name="xposedmodule"
@@ -17,9 +43,6 @@
         <meta-data
             android:name="xposedminversion"
             android:value="93" />
-        <meta-data
-            android:name="xposedsharedprefs"
-            android:value="true" />
         <meta-data
             android:name="xposedscope"
             android:resource="@array/xposedscope" />

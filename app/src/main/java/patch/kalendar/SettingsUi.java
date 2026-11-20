@@ -7,6 +7,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
@@ -48,7 +49,7 @@ import de.robv.android.xposed.XposedHelpers;
 /**
  * Podesavanja modula unutar aplikacije Pravoslavac (Meni -> Опције -> Подешавања).
  * Izvrsava se u procesu Pravoslavca; postavke se cuvaju u njegovim podacima (Prefs.FILE).
- * Pozadina ekrana je Dark.BG, a tekst Dark.TEXT (c_bg i c_text odabrane teme).
+ * Pozadina ekrana je Dark.SET_BG, a tekst Dark.SET_TEXT (c_set_bg i c_set_text odabrane teme), prekidaci Dark.SET_SWITCH.
  */
 final class SettingsUi {
 
@@ -60,7 +61,9 @@ final class SettingsUi {
     private View drawerChild;
     private Object backCb;
     private boolean closed;
-    /** Odabrani tab: 0 = opcije (prekidaci), 1 = teme. */
+    private FontPanel fontPanel;       // ugradjeno preuzimanje fontova u tabu Фонтови
+    private boolean fontPanelOpen;
+    /** Odabrani tab: 0 = opcije (prekidaci), 1 = teme, 2 = fontovi. */
     private int tab;
     private int builtTab = -1;
     private ScrollView scroll;
@@ -71,6 +74,8 @@ final class SettingsUi {
     /** Osvjezava stanje dugmeta za vracanje u otvorenom dijalogu (ili null). */
     private Runnable undoRefresh;
     private String selId;
+    /** Stanje boja u aplikaciji trenutno: true = originalne ("Православац"), false = boje teme. */
+    private boolean appliedOrig;
 
     /** Neka postavka koja trazi ponovno kreiranje ekrana je promijenjena. */
     private boolean dirty;
@@ -108,13 +113,24 @@ final class SettingsUi {
         SettingsUi s = current;
         if (s == null || s.closed || s.act != act) return false;
         if (s.drawerOpen()) return false;
-        s.close(true);
+        if (!s.backInside()) s.close(true);
         return true;
+    }
+
+    /** Back dok je otvoreno preuzimanje fontova: zatvara samo taj dio (isto kao dugme "Затвори преузимање фонтова"). */
+    private boolean backInside() {
+        if (tab == 2 && fontPanelOpen) {
+            fontPanelOpen = false;
+            build();
+            return true;
+        }
+        return false;
     }
 
     private void open() {
         loadThemes();
         host = new Host(act);
+        host.setTag(Dark.TAG_SETTINGS, Boolean.TRUE);
         host.setClickable(true);
         host.setFocusableInTouchMode(true);
         build();
@@ -170,6 +186,10 @@ final class SettingsUi {
     private void close(boolean apply) {
         if (closed) return;
         closed = true;
+        if (fontPanel != null) {
+            fontPanel.dispose();
+            fontPanel = null;
+        }
         if (current == this) current = null;
         unregisterBack();
         try {
@@ -203,7 +223,7 @@ final class SettingsUi {
         @Override
         public boolean dispatchKeyEvent(KeyEvent e) {
             if (e.getKeyCode() == KeyEvent.KEYCODE_BACK && !closed && !drawerOpen()) {
-                if (e.getAction() == KeyEvent.ACTION_UP) close(true);
+                if (e.getAction() == KeyEvent.ACTION_UP && !backInside()) close(true);
                 return true;
             }
             return super.dispatchKeyEvent(e);
@@ -294,7 +314,7 @@ final class SettingsUi {
                     @Override
                     public void onBackInvoked() {
                         if (s.drawerOpen()) Hook.closeDrawer(a);
-                        else s.close(true);
+                        else if (!s.backInside()) s.close(true);
                     }
                 };
             }
@@ -380,13 +400,18 @@ final class SettingsUi {
 
     // ------------------------------------------------------------------ izgled
 
-    /** Teme uključene (boje odabrane teme) ili isključene (originalne boje aplikacije). */
+    /** Izabrana je tema sa bojama (true) ili "Православац" = originalne boje aplikacije (false). */
     private boolean themed() {
-        return sp.getBoolean(Prefs.KEY_DARK, true);
+        return !Themes.isOrig(selId);
     }
 
     private int bg() {
-        return themed() ? Dark.BG : 0xfffaf5e9;
+        return themed() ? Dark.SET_BG : 0xfffaf5e9;
+    }
+
+    /** Pozadina podesavanja je svijetla (odlucuje o svijetloj/tamnoj varijanti dijaloga). */
+    private boolean setLight() {
+        return Dark.lum(bg()) >= 0.5f;
     }
 
     private int bar() {
@@ -398,7 +423,7 @@ final class SettingsUi {
     }
 
     private int text() {
-        return themed() ? Dark.TEXT : 0xff000000;
+        return themed() ? Dark.SET_TEXT : 0xff000000;
     }
 
     /** Sekundarni tekst: boja teksta pomijesana s pozadinom. */
@@ -412,12 +437,14 @@ final class SettingsUi {
     }
 
     private AlertDialog.Builder builder() {
-        return new AlertDialog.Builder(act, themed() && !Dark.light()
+        return new AlertDialog.Builder(act, themed() && !setLight()
                 ? AlertDialog.THEME_DEVICE_DEFAULT_DARK : AlertDialog.THEME_DEVICE_DEFAULT_LIGHT);
     }
 
     private TextView label(String s, float size, int color) {
         TextView tv = new TextView(act);
+        // oznaka PRIJE setText: tekst jos nema roditelja, pa bi hook prepoznao "Постови" kao oznaku iz kalendara
+        tv.setTag(Dark.TAG_SETTINGS, Boolean.TRUE);
         tv.setText(s);
         tv.setTextSize(size);
         tv.setTextColor(color);
@@ -442,17 +469,22 @@ final class SettingsUi {
                     Prefs.KEY_OPEN_CALENDAR, true));
             root.addView(makeSwitch("Текст поравнат лево", "Уместо обостраног поравнања.",
                     Prefs.KEY_LEFT, true));
-            root.addView(makeSwitch("Теме",
-                    "Тема у одабраним бојама.",
-                    Prefs.KEY_DARK, true));
-        } else {
+        } else if (tab == 1) {
             addThemeSection(root);
+        } else {
+            addFontSection(root);
         }
 
         scroll = new ScrollView(act);
         scroll.setBackgroundColor(bg());
         scroll.setFillViewport(true);
         scroll.addView(root);
+        scroll.getViewTreeObserver().addOnScrollChangedListener(new android.view.ViewTreeObserver.OnScrollChangedListener() {
+            @Override
+            public void onScrollChanged() {
+                if (tab == 2 && fontPanel != null && fontPanelOpen) fontPanel.onScroll();
+            }
+        });
 
         LinearLayout col = new LinearLayout(act);
         col.setOrientation(LinearLayout.VERTICAL);
@@ -478,8 +510,9 @@ final class SettingsUi {
         LinearLayout bar = new LinearLayout(act);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setBackgroundColor(bar());
-        String[] names = { "Опције", "Теме" };
-        for (int i = 0; i < names.length; i++) {
+        String[] names = { "Опције", "Теме", "Фонтови" };
+        int shown = names.length;
+        for (int i = 0; i < shown; i++) {
             final int idx = i;
             FrameLayout cell = new FrameLayout(act);
             TextView tv = new TextView(act);
@@ -512,6 +545,34 @@ final class SettingsUi {
         return bar;
     }
 
+    /** Boja prekidaca (c_switch): ukljucen = boja teme, iskljucen = neutralna nijansa teksta. */
+    private void tintSwitch(Switch sw) {
+        int on = 0xff000000 | Dark.SET_SWITCH;
+        int offThumb = Dark.mix(bg(), text(), 0.65f);
+        int offTrack = 0x55000000 | (text() & 0xffffff);
+        int onTrack = 0x88000000 | (on & 0xffffff);
+        int[][] st = { new int[] { android.R.attr.state_checked }, new int[0] };
+        android.content.res.ColorStateList thumb = new android.content.res.ColorStateList(st, new int[] { on, offThumb });
+        android.content.res.ColorStateList track = new android.content.res.ColorStateList(st, new int[] { onTrack, offTrack });
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 23) {
+                sw.setThumbTintList(thumb);
+                sw.setTrackTintList(track);
+            } else {
+                // Android 5.x: nema setThumbTintList; boji se direktno unutrasnje drawable-e
+                java.lang.reflect.Field tf = Switch.class.getDeclaredField("mThumbDrawable");
+                java.lang.reflect.Field kf = Switch.class.getDeclaredField("mTrackDrawable");
+                tf.setAccessible(true);
+                kf.setAccessible(true);
+                android.graphics.drawable.Drawable td = (android.graphics.drawable.Drawable) tf.get(sw);
+                android.graphics.drawable.Drawable kd = (android.graphics.drawable.Drawable) kf.get(sw);
+                if (td != null) td.mutate().setTintList(thumb);
+                if (kd != null) kd.mutate().setTintList(track);
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
     private View makeSwitch(String title, String desc, final String key, boolean def) {
         LinearLayout box = new LinearLayout(act);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -522,6 +583,7 @@ final class SettingsUi {
         sw.setTextSize(18f);
         sw.setTextColor(text());
         sw.setChecked(sp.getBoolean(key, def));
+        if (themed()) tintSwitch(sw);
         sw.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton b, boolean checked) {
@@ -567,20 +629,37 @@ final class SettingsUi {
         String json = sp.getString(Themes.KEY_THEMES, null);
         themes = Themes.parse(json);
         selId = Themes.find(themes, sp.getString(Themes.KEY_SEL, null)).id;
-        if (json == null) saveThemes(); // prvo otvaranje: upisi ugradjene teme
+        boolean legacyOff = !sp.getBoolean(Prefs.KEY_DARK, true);   // stari prekidac "Теме и фонтови" je bio iskljucen
+        if (legacyOff) selId = Themes.ORIG_ID;                       // to je sada tema "Православац"
+        appliedOrig = Themes.isOrig(selId);
+        if (json == null || legacyOff) saveThemes(); // prvo otvaranje: upisi ugradjene teme
     }
 
     /** Upisuje teme i odmah primjenjuje boje (Dark + resursi); ekran se osvjezava pri zatvaranju. */
-    private void saveThemes() {
+    private boolean saveThemes() {
         sp.edit()
                 .putString(Themes.KEY_THEMES, Themes.toJson(themes))
                 .putString(Themes.KEY_SEL, selId)
+                .putBoolean(Prefs.KEY_DARK, true)   // stari prekidac vise ne postoji: tema se bira u listi
                 .commit();
         Prefs.refresh();
         Dark.reload();
-        Hook.reapplyResources();
-        applyToolbarNow();
+        boolean nowOrig = Themes.isOrig(selId);
+        boolean changed = nowOrig != appliedOrig;
+        appliedOrig = nowOrig;
+        if (nowOrig) {
+            if (changed) {
+                // "Православац": vrati originalne boje resursa
+                boolean ok = Hook.restoreResources(act);
+                darkOff = !ok;
+            }
+        } else {
+            darkOff = false;
+            Hook.reapplyResources();
+            applyToolbarNow();
+        }
         dirty = true;
+        return changed;
     }
 
     /** Odmah oboji gornju traku aplikacije (ne ceka zatvaranje podesavanja). */
@@ -591,6 +670,275 @@ final class SettingsUi {
         } catch (Throwable t) {
             XposedBridge.log(t);
         }
+    }
+
+    // ------------------------------------------------------------------ tab "Фонтови"
+
+    private org.json.JSONObject fontsJson;
+
+    private org.json.JSONObject fonts() {
+        if (fontsJson == null) {
+            try {
+                String j = sp.getString(Prefs.KEY_FONTS, null);
+                fontsJson = j == null ? new org.json.JSONObject() : new org.json.JSONObject(j);
+            } catch (Throwable t) {
+                fontsJson = new org.json.JSONObject();
+            }
+        }
+        return fontsJson;
+    }
+
+    private org.json.JSONObject fontsSub(String name) throws org.json.JSONException {
+        org.json.JSONObject o = fonts().optJSONObject(name);
+        if (o == null) {
+            o = new org.json.JSONObject();
+            fonts().put(name, o);
+        }
+        return o;
+    }
+
+    private String fontOf(String key) {
+        org.json.JSONObject f = fonts().optJSONObject("f");
+        String v = f == null ? "" : f.optString(key, "");
+        return v.length() == 0 ? null : v;
+    }
+
+    private int sizeOf(String key) {
+        org.json.JSONObject o = fonts().optJSONObject("s");
+        int v = o == null ? 100 : o.optInt(key, 100);
+        return v < 50 ? 50 : (v > 200 ? 200 : v);
+    }
+
+    /** Zajednicka velicina svih tekstova (ako su svi isti), inace 100. */
+    private int allSize() {
+        int common = -1;
+        for (String[] c : Colors.ALL) {
+            if (!Colors.hasFont(c[0])) continue;
+            int v = sizeOf(c[0]);
+            if (common == -1) common = v;
+            else if (common != v) return 100;
+        }
+        return common == -1 ? 100 : common;
+    }
+
+    private void putFont(String key, String fam) {
+        try {
+            if (fam == null) fontsSub("f").remove(key);
+            else fontsSub("f").put(key, fam);
+        } catch (Throwable ignored) {
+            // nista
+        }
+    }
+
+    private void putSize(String key, int pct) {
+        try {
+            if (pct == 100) fontsSub("s").remove(key);
+            else fontsSub("s").put(key, pct);
+        } catch (Throwable ignored) {
+            // nista
+        }
+    }
+
+    /** Snima izbor fontova; izmjene se vide kad se podesavanja zatvore (ekran se ponovo napravi). */
+    private void saveFonts() {
+        sp.edit().putString(Prefs.KEY_FONTS, fonts().toString()).commit();
+        Prefs.refresh();
+        Fonts.reset();
+        dirty = true;
+    }
+
+    /** Poslije brisanja preuzetih fontova: tekstovi koji su koristili obrisani font vracaju se na originalni. */
+    private void pruneMissingFonts() {
+        try {
+            Fonts.reset();
+            org.json.JSONObject f = fonts().optJSONObject("f");
+            if (f == null) return;
+            java.util.List<String> have = Fonts.available();
+            java.util.List<String> drop = new java.util.ArrayList<String>();
+            java.util.Iterator<String> it = f.keys();
+            while (it.hasNext()) {
+                String k = it.next();
+                String fam = f.optString(k, "");
+                if (fam.length() > 0 && !have.contains(fam)) drop.add(k);
+            }
+            if (drop.isEmpty()) return;
+            for (String k : drop) f.remove(k);
+            saveFonts();   // snimi izbor i oznaci da se ekran aplikacije ponovo napravi pri zatvaranju podesavanja
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
+    }
+
+    private void addFontSection(LinearLayout root) {
+        final FontPanel.Pal pal = fontPal();
+        TextView toggle = fontPanelOpen
+                ? FontPanel.pill(act, pal, "Затвори преузимање фонтова", FontPanel.TONAL, Icons.CLOSE, false)
+                : FontPanel.pill(act, pal, "Отвори преузимање фонтова", FontPanel.SUCCESS, Icons.DOWNLOAD, false);
+        toggle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                fontPanelOpen = !fontPanelOpen;
+                build();
+            }
+        });
+        LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tlp.setMargins(0, dp(6), 0, dp(10));
+        root.addView(toggle, tlp);
+
+        if (fontPanelOpen) {
+            if (fontPanel != null && !fontPanel.sameColors(pal)) {   // promijenjena tema: napravi panel iznova
+                fontPanel.dispose();
+                fontPanel = null;
+            }
+            if (fontPanel == null) {
+                fontPanel = new FontPanel(act, pal, new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!closed) build();   // osvjezi nazive fontova u tabu
+                    }
+                }, new Runnable() {
+                    @Override
+                    public void run() {
+                        pruneMissingFonts();
+                    }
+                });
+            }
+            View pv = fontPanel.view();
+            if (pv.getParent() instanceof ViewGroup) ((ViewGroup) pv.getParent()).removeView(pv);
+            root.addView(pv, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            LinearLayout.LayoutParams gap = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(14));
+            root.addView(new View(act), gap);
+            fontPanel.start();
+        }
+
+        root.addView(makeFontItem(null, "Цео календар (сви текстови)"));
+        for (String[] c : Colors.ALL) {
+            if (Colors.fontListed(c[0])) root.addView(makeFontItem(c[0], c[1]));
+        }
+    }
+
+    private String fontLabel(String key) {
+        if (key == null) return "Фонт за све: изабери ▾";
+        String f = fontOf(key);
+        if (f != null && !Fonts.available().contains(f)) f = f + " (није преузет)";
+        return "Фонт: " + (f == null ? "оригинални" : f) + " ▾";
+    }
+
+    /** Jedan red: naziv teksta, izbor fonta i velicina (key == null: primjenjuje se na sve tekstove odjednom). */
+    private View makeFontItem(final String key, String name) {
+        LinearLayout box = new LinearLayout(act);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(0, dp(10), 0, dp(6));
+        box.addView(label(name, key == null ? 17f : 15f, text()));
+
+        if (key != null && !Colors.hasFont(key)) {   // posjecene linkove preglednik ne dozvoljava posebno
+            TextView note = label("Користи фонт и величину линкова (прегледач не дозвољава посебно подешавање).",
+                    13f, dim());
+            note.setPadding(0, dp(2), 0, dp(4));
+            box.addView(note);
+            return box;
+        }
+
+        LinearLayout line = new LinearLayout(act);
+        line.setOrientation(LinearLayout.HORIZONTAL);
+        line.setGravity(Gravity.CENTER_VERTICAL);
+
+        final TextView fontTv = label(fontLabel(key), 15f, dim());
+        fontTv.setPadding(0, dp(8), dp(8), dp(8));
+        fontTv.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                pickFont(key, fontTv);
+            }
+        });
+        line.addView(fontTv, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        final TextView pct = label((key == null ? allSize() : sizeOf(key)) + "%", 15f, text());
+        pct.setGravity(Gravity.CENTER);
+        pct.setMinWidth(dp(52));
+        line.addView(stepButton("−", key, -5, pct));
+        line.addView(pct);
+        line.addView(stepButton("+", key, 5, pct));
+        box.addView(line);
+        return box;
+    }
+
+    private TextView stepButton(String sign, final String key, final int delta, final TextView pct) {
+        TextView b = label(sign, 22f, text());
+        b.setGravity(Gravity.CENTER);
+        b.setPadding(dp(14), dp(4), dp(14), dp(4));
+        b.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (key == null) {   // ceo kalendar: isti korak za sve tekstove
+                    int n = Math.max(50, Math.min(200, allSize() + delta));
+                    for (String[] c : Colors.ALL) {
+                        if (Colors.hasFont(c[0])) putSize(c[0], n);
+                    }
+                    saveFonts();
+                    build();   // osvjezi procente u svim redovima
+                    return;
+                }
+                int n = Math.max(50, Math.min(200, sizeOf(key) + delta));
+                putSize(key, n);
+                pct.setText(n + "%");
+                saveFonts();
+            }
+        });
+        return b;
+    }
+
+    /** Izbor fonta za jedan tekst (key != null) ili za sve tekstove (key == null). */
+    private void pickFont(final String key, final TextView label) {
+        Fonts.reset();
+        java.util.List<String> names = new java.util.ArrayList<String>();
+        names.add("Оригинални фонт");
+        names.addAll(Fonts.available());
+        names.add("＋ Преузми фонтове…");
+        final String[] items = names.toArray(new String[0]);
+        showStyled(builder()
+                .setTitle(key == null ? "Фонт за све текстове" : "Фонт")
+                .setItems(items, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int which) {
+                        if (which == items.length - 1) {
+                            fontPanelOpen = true;
+                            build();
+                            scroll.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    scroll.scrollTo(0, 0);
+                                }
+                            });
+                            return;
+                        }
+                        String fam = which == 0 ? null : items[which];
+                        if (key == null) {
+                            for (String[] c : Colors.ALL) {
+                                if (Colors.hasFont(c[0])) putFont(c[0], fam);
+                            }
+                            saveFonts();
+                            build();
+                        } else {
+                            putFont(key, fam);
+                            saveFonts();
+                            label.setText(fontLabel(key));
+                        }
+                    }
+                })
+                .setNegativeButton("Одустани", null));
+    }
+
+    /** Boje prozora za fontove (iz teme; kad su teme iskljucene, originalne svijetle boje). */
+    private FontPanel.Pal fontPal() {
+        boolean t = themed();
+        int fill = t ? Dark.BTN_BG : 0xff2f3e5c;
+        return new FontPanel.Pal(bg(), text(), dim(), fill,
+                t ? Dark.BTN_TEXT : 0xffffffff,
+                t ? Dark.BTN_BORDER : Dark.mix(fill, 0xffffffff, 0.25f),
+                t && !setLight());
     }
 
     private void addThemeSection(LinearLayout root) {
@@ -614,8 +962,17 @@ final class SettingsUi {
             rb.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    if (t.id.equals(selId)) return;
                     selId = t.id;
-                    saveThemes();
+                    boolean changed = saveThemes();
+                    if (changed) {
+                        if (!darkOff) {
+                            // prelaz "Православац" <-> tema sa bojama: odmah ponovo napravi ekran (isti tab)
+                            recreateKeepingSettings();
+                            return;
+                        }
+                        toast("Поново покрени апликацију.");
+                    }
                     build();
                 }
             });
@@ -635,6 +992,12 @@ final class SettingsUi {
                 row.addView(dot, lp);
             }
 
+            if (Themes.isOrig(t.id)) {
+                // "Православац": samo za izbor, bez opcija (uredi, preimenuj, kopiraj, obrisi)
+                row.addView(new View(act), new LinearLayout.LayoutParams(dp(38), 1));
+                root.addView(row);
+                continue;
+            }
             ImageView more = new ImageView(act);
             more.setImageDrawable(Icons.get(Icons.OPTIONS, text(), dp(22)));
             more.setScaleType(ImageView.ScaleType.CENTER);
@@ -743,6 +1106,9 @@ final class SettingsUi {
     /** Prikazuje dijalog sa bojama teme: pozadina i obrub prozora, boje naslova, poruke i dugmadi. */
     private AlertDialog showStyled(AlertDialog.Builder b) {
         AlertDialog d = b.create();
+        if (d.getWindow() != null && d.getWindow().getDecorView() != null) {
+            d.getWindow().getDecorView().setTag(Dark.TAG_SETTINGS, Boolean.TRUE);
+        }
         d.getWindow().setBackgroundDrawable(windowBg(dp(8)));
         d.show();
         int tid = act.getResources().getIdentifier("alertTitle", "id", "android");
@@ -799,7 +1165,7 @@ final class SettingsUi {
     /** withExit = true dodaje na dno red "Одустани" koji samo zatvara meni. */
     private void showIconMenu(String titleText, int[] icons, String[] captions, Runnable[] actions,
             boolean withExit) {
-        final Dialog d = new Dialog(act, themed() && !Dark.light()
+        final Dialog d = new Dialog(act, themed() && !setLight()
                 ? AlertDialog.THEME_DEVICE_DEFAULT_DARK : AlertDialog.THEME_DEVICE_DEFAULT_LIGHT);
         d.requestWindowFeature(Window.FEATURE_NO_TITLE);
 
@@ -948,6 +1314,7 @@ final class SettingsUi {
             @Override
             public void onText(String name) {
                 Themes.Theme src = Themes.find(themes, selId);
+                if (Themes.isOrig(src.id)) src = Themes.find(themes, null);   // "Православац" nema boja za kopiranje
                 Themes.Theme n = src.copy("t" + System.currentTimeMillis(), name);
                 themes.add(n);
                 selId = n.id;
@@ -1096,7 +1463,9 @@ final class SettingsUi {
     }
 
     private void deleteTheme(final Themes.Theme t) {
-        if (themes.size() <= 1) {
+        int editable = 0;
+        for (Themes.Theme x : themes) if (!Themes.isOrig(x.id)) editable++;
+        if (editable <= 1) {
             toast("Мора остати бар једна тема");
             return;
         }
@@ -1108,7 +1477,7 @@ final class SettingsUi {
                     public void onClick(DialogInterface d, int w) {
                         themes.remove(t);
                         clearUndo(t);
-                        if (selId.equals(t.id)) selId = themes.get(0).id;
+                        if (selId.equals(t.id)) selId = Themes.find(themes, null).id;
                         saveThemes();
                         build();
                     }
@@ -1205,6 +1574,7 @@ final class SettingsUi {
                 .setNeutralButton(" ", null) // tekst se ispod zamjenjuje ikonicom (prazan tekst bi sakrio dugme)
                 .create();
         // pozadina editora boja je c_bg, a slova su c_text (naslov i dugmad se boje izricito)
+        d.getWindow().getDecorView().setTag(Dark.TAG_SETTINGS, Boolean.TRUE);
         d.getWindow().setBackgroundDrawable(windowBg(dp(8)));
         d.show();
         int tid = act.getResources().getIdentifier("alertTitle", "id", "android");
@@ -1259,7 +1629,7 @@ final class SettingsUi {
                 h.setText(g);
                 h.setTextSize(13f);
                 h.setTypeface(Typeface.DEFAULT_BOLD);
-                h.setTextColor(Dark.light() ? 0xff1a56b0 : 0xff8ab4f8);
+                h.setTextColor(setLight() ? 0xff1a56b0 : 0xff8ab4f8);
                 h.setPadding(0, dp(14), 0, dp(4));
                 rows.addView(h);
             }
@@ -1274,6 +1644,7 @@ final class SettingsUi {
         row.setPadding(0, dp(2), 0, dp(2));
 
         TextView tv = new TextView(act);
+        tv.setTag(Dark.TAG_SETTINGS, Boolean.TRUE);   // prije setText (vidi label()): inace "Постови" dobije boju postova
         tv.setText(label);
         tv.setTextSize(15f);
         tv.setTextColor(text());

@@ -156,6 +156,7 @@ final class ColorPicker {
         bg.setCornerRadius(dp(ctx, 8));
         // svjetliji obrub, da se vide ivice prozora
         bg.setStroke(dp(ctx, 2), Dark.mix(bgColor, fgColor, 0.38f));
+        dlg.getWindow().getDecorView().setTag(Dark.TAG_SETTINGS, Boolean.TRUE);   // naslov (naziv boje, npr. "Постови") nije tekst iz kalendara
         dlg.getWindow().setBackgroundDrawable(bg);
         dlg.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN
                 | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);

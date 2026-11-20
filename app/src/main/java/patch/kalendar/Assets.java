@@ -11,19 +11,20 @@ final class Assets {
     /** CSS za tamnu temu; boje dolaze iz Dark.* (podrazumijevane ili prilagodjene). */
     static String darkCss() {
         return ":root{color-scheme:" + (Dark.light() ? "light" : "dark") + "}\n"
-                + "html,body{background:" + hex(Dark.WEB_BG) + " !important;background-image:none !important;color:" + hex(Dark.WEB_TEXT) + " !important}\n"
+                + "html,body{background:" + hex(Dark.WEB_BG) + " !important;background-image:none !important;color:" + hex(Dark.WEB_BODY) + " !important}\n"
                 + "#wrapper,div.transbox,.calibre,.calibre1{background:transparent !important;background-image:none !important}\n"
-                + "h1,h2,h3,h4,.color-red{color:" + hex(Dark.TITLE) + " !important}\n"
+                + "h1,h2,h3,h4,h5,h6,.title,.naslov,.color-red{color:" + hex(Dark.TITLE) + " !important}\n"
                 + "h5,h6{color:" + hex(Dark.WEB_HEAD2) + " !important}\n"
                 + "a,a:link{color:" + hex(Dark.WEB_LINK) + "}\n"
                 + "a:visited{color:" + hex(Dark.WEB_VISITED) + "}\n"
                 + "a:hover{color:" + hex(Dark.TITLE) + " !important}\n"
                 + "hr{border-color:" + hex(Dark.WEB_LINE) + " !important;color:" + hex(Dark.WEB_LINE) + " !important;background-color:" + hex(Dark.WEB_LINE) + "}\n"
                 + "table,td,th{border-color:" + hex(Dark.WEB_LINE) + "}\n"
-                + "input,select,textarea,button{background:" + hex(Dark.SURFACE) + ";color:" + hex(Dark.WEB_TEXT) + ";border-color:" + hex(Dark.WEB_LINE) + "}\n"
+                + "input,select,textarea,button{background:" + hex(Dark.SURFACE) + ";color:" + hex(Dark.WEB_BODY) + ";border-color:" + hex(Dark.WEB_LINE) + "}\n"
                 + "[data-dkb][data-dkb][data-dkb],[data-dkb][data-dkb][data-dkb]:link,[data-dkb][data-dkb][data-dkb]:visited,[data-dkb][data-dkb][data-dkb]:hover,[data-dkb][data-dkb][data-dkb]:active,[data-dkb][data-dkb][data-dkb]:focus{background:" + hex(Dark.BTN_BG) + " !important;background-image:none !important;color:" + hex(Dark.BTN_TEXT) + " !important;border-color:" + hex(Dark.BTN_BORDER) + " !important;outline-color:" + hex(Dark.BTN_BORDER) + " !important;text-shadow:none !important}\n"
                 + "[data-dkb][data-dkb] *{color:" + hex(Dark.BTN_TEXT) + " !important}\n"
-                + "::-webkit-scrollbar-track{-webkit-box-shadow:inset 0 0 3px rgba(0,0,0," + (Dark.light() ? ".25" : ".8") + ")}\n";
+                + "::-webkit-scrollbar-track{-webkit-box-shadow:inset 0 0 3px rgba(0,0,0," + (Dark.light() ? ".25" : ".8") + ")}\n"
+                + Fonts.webCss();
     }
 
     /** Pretvara tekst u \\uXXXX znakove (ASCII), da se moze ubaciti u stranicu bilo kojeg kodiranja. */
@@ -36,26 +37,51 @@ final class Assets {
         return b.toString();
     }
 
-    /** Zajednicki dio skripti: prepoznavanje i bojenje dugmadi "претходно / календар / следеће". */
+    /** Zajednicki dio skripti: prepoznavanje i bojenje dugmadi (претходно / календар / садржај / следеће...). */
+    private static final String[] NAV_WORDS = {
+            "претходно", "претходна",
+            "следеће", "следећа",
+            "календар", "садржај",
+    };
+
+    private static String navWordsJs() {
+        StringBuilder b = new StringBuilder("var W={");
+        for (int i = 0; i < NAV_WORDS.length; i++) {
+            if (i > 0) b.append(',');
+            b.append('\'').append(u(NAV_WORDS[i])).append("':1");
+        }
+        b.append("};");
+        return b.toString();
+    }
+
     private static final String NAV_CORE =
-            "var W=['@W0@','@W1@','@W2@','@W3@'];"
-            + "var BL={TD:1,TH:1,TR:1,TABLE:1,TBODY:1,THEAD:1,TFOOT:1,LI:1,UL:1,OL:1,P:1,FORM:1,BODY:1,HTML:1,CENTER:1,SECTION:1,ARTICLE:1,MAIN:1,HEADER:1,FOOTER:1,NAV:1};"
+            "var BL={TD:1,TH:1,TR:1,TABLE:1,TBODY:1,THEAD:1,TFOOT:1,LI:1,UL:1,OL:1,P:1,FORM:1,BODY:1,HTML:1,CENTER:1,SECTION:1,ARTICLE:1,MAIN:1,HEADER:1,FOOTER:1,NAV:1};"
             + "var IT={A:1,BUTTON:1,INPUT:1};"
-            + "function isNav(e){try{if(e.nodeType!==1)return false;if(e.childElementCount>3)return false;var r=(e.value||e.textContent||'');if(r.length>400)return false;var b=/[<>\\[\\]\\u00ab\\u00bb]/.test(r);var t=r.replace(/[<>\\[\\]\\u00ab\\u00bb]/g,'').replace(/\\s+/g,' ').trim().toLowerCase();if(t===W[0]||t===W[1]||t===W[3])return true;if(t===W[2]&&b)return true;}catch(x){}return false;}"
+            + "function isNav(e){try{if(e.nodeType!==1)return false;if(e.childElementCount>3)return false;var r=(e.value||e.textContent||'');if(r.length>400)return false;var t=r.replace(/[<>\\[\\]\\u00ab\\u00bb\\u2039\\u203a\\u2190\\u2192\\u25c4\\u25ba]/g,'').replace(/\\s+/g,' ').trim().toLowerCase();if(W[t]===1)return true;}catch(x){}return false;}"
             + "function looks(p){try{var c=getComputedStyle(p);return c.backgroundImage!=='none'||parseFloat(c.borderTopWidth)>0||parseFloat(c.borderTopLeftRadius)>0||c.boxShadow!=='none';}catch(x){return false;}}"
             + "function isBtn(e){if(!isNav(e))return false;var t=e.tagName;if(BL[t])return false;if(IT[t])return true;return looks(e);}"
             + "function mark(e){try{e.setAttribute('data-dkb','1');var s=e.style;s.setProperty('background-color','@BTNBG@','important');s.setProperty('background-image','none','important');s.setProperty('color','@BTNTEXT@','important');s.setProperty('border-color','@BTNBORDER@','important');s.setProperty('outline-color','@BTNBORDER@','important');}catch(x){}}"
-            + "function scan(r){try{if(!r||r.nodeType!==1)return;if(isBtn(r))mark(r);var l=r.querySelectorAll('a,button,input,span,div,b,font,i,strong');for(var i=0;i<l.length;i++)if(isBtn(l[i]))mark(l[i]);}catch(x){}}"
+            + "function scan(r){try{if(!r||r.nodeType!==1)return;if(CS)csScan(r);if(isBtn(r))mark(r);var l=r.querySelectorAll('a,button,input,span,div,b,font,i,strong');for(var i=0;i<l.length;i++)if(isBtn(l[i]))mark(l[i]);}catch(x){}}"
             + "var markNav=scan;";
 
+    /** Crkvenoslovenski fontovi (triodion-ieUcs i IrmolSkun_0): elementi sa takvim fontom dobijaju oznaku data-dkcs (preuzeti font se ne primjenjuje). */
+    private static final String CS_JS =
+            "var CSF=/triodion|ieucs|irmol|skun/i;"
+            + "function tagCs(p){try{if(!p||p.nodeType!==1)return;p.setAttribute('data-dkcs','1');var par=p.parentNode;if(par&&par.nodeType===1&&par.tagName!=='BODY'&&par.tagName!=='HTML'){par.setAttribute('data-dkcs','1');}var ch=p.children;for(var i=0;i<ch.length;i++)tagCs(ch[i]);}catch(x){}}"
+            + "function isCsNode(n,p){try{if(p&&p.nodeType===1){if(p.hasAttribute&&p.hasAttribute('data-dkcs'))return true;var face=p.getAttribute&&p.getAttribute('face');if(face&&CSF.test(face))return true;var style=p.getAttribute&&p.getAttribute('style');if(style&&CSF.test(style))return true;var cls=p.className;if(typeof cls==='string'&&CSF.test(cls))return true;var f=p.style&&p.style.fontFamily;if(f&&CSF.test(f))return true;var cf=getComputedStyle(p).fontFamily;if(cf&&CSF.test(cf))return true;}}catch(x){}return false;}"
+            + "function csScan(r){try{if(!r||r.nodeType!==1)return;var w=document.createTreeWalker(r,NodeFilter.SHOW_TEXT,null,false),n;"
+            + "while((n=w.nextNode())){var p=n.parentNode;if(isCsNode(n,p))tagCs(p);}}catch(x){}}"
+            + "function csText(n){try{var p=n.parentNode;if(isCsNode(n,p))tagCs(p);}catch(x){}}";
+
     private static String navCore() {
-        return NAV_CORE.replace("@W0@", u("претходно")).replace("@W1@", u("предходно")).replace("@W2@", u("календар"))
-                .replace("@W3@", u("следеће")).replace("@BTNBG@", hex(Dark.BTN_BG))
-                .replace("@BTNTEXT@", hex(Dark.BTN_TEXT)).replace("@BTNBORDER@", hex(Dark.BTN_BORDER));
+        return "var CS=" + (Prefs.keepSlavonic() ? "true" : "false") + ";" + CS_JS + navWordsJs() + NAV_CORE
+                .replace("@BTNBG@", hex(Dark.BTN_BG))
+                .replace("@BTNTEXT@", hex(Dark.BTN_TEXT))
+                .replace("@BTNBORDER@", hex(Dark.BTN_BORDER));
     }
 
     private static final String NAV_OBSERVER =
-            "function text(n){var p=n.parentNode;for(var k=0;k<3&&p&&p.nodeType===1;k++,p=p.parentNode)if(isBtn(p))mark(p);}"
+            "function text(n){if(CS)csText(n);var p=n.parentNode;for(var k=0;k<3&&p&&p.nodeType===1;k++,p=p.parentNode)if(isBtn(p))mark(p);}"
             + "try{new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){var m=ms[i];if(m.type==='characterData'){text(m.target);continue;}var a=m.addedNodes;for(var j=0;j<a.length;j++){var n=a[j];if(n.nodeType===1)scan(n);else if(n.nodeType===3)text(n);}}}).observe(document,{childList:true,subtree:true,characterData:true});}catch(x){}"
             + "document.addEventListener('DOMContentLoaded',function(){scan(document.documentElement);});"
             + "window.addEventListener('load',function(){scan(document.documentElement);});"
@@ -69,18 +95,36 @@ final class Assets {
         return "(function(){" + navCore() + NAV_OBSERVER + "})();";
     }
 
+
     static String darkJs() {
-        String css = darkCss().replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n");
-        return DARK_JS.replace("@NAVCORE@", navCore()).replace("@TEXT@", hex(Dark.WEB_TEXT)).replace("@TITLE@", hex(Dark.TITLE)).replace("@MARK@", hex(Dark.WEB_MARK))
+        boolean colors = Prefs.dark();   // false = tema "Православац": samo fontovi, boje stranica se ne diraju
+        String css = (colors ? darkCss() : Fonts.webCss()).replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n");
+        String markFont = Fonts.cssFamily("c_web_mark");   // font oznaka verzija (zelene oznake) ili null
+        String titleFont = Fonts.cssFamily("c_title");     // font naslova ili null
+        return DARK_JS.replace("@NAVCORE@", navCore()).replace("@TEXT@", hex(Dark.WEB_BODY)).replace("@TITLE@", hex(Dark.TITLE)).replace("@MARK@", hex(Dark.WEB_MARK))
                 .replace("@BG@", hex(Dark.WEB_BG)).replace("@LIGHT@", Dark.light() ? "true" : "false")
+                .replace("@MKR@", String.valueOf((Dark.WEB_MARK >> 16) & 255)).replace("@MKG@", String.valueOf((Dark.WEB_MARK >> 8) & 255))
+                .replace("@MKB@", String.valueOf(Dark.WEB_MARK & 255))
+                .replace("@TITR@", String.valueOf((Dark.TITLE >> 16) & 255)).replace("@TITG@", String.valueOf((Dark.TITLE >> 8) & 255))
+                .replace("@TITB@", String.valueOf(Dark.TITLE & 255))
+                .replace("@MARKFONT@", markFont == null ? "" : markFont)
+                .replace("@MARKZOOM@", Prefs.fontSize("c_web_mark") == 100 ? "" : Prefs.fontSize("c_web_mark") + "%")
+                .replace("@TITLEFONT@", titleFont == null ? "" : titleFont)
+                .replace("@TITLEZOOM@", Prefs.fontSize("c_title") == 100 ? "" : Prefs.fontSize("c_title") + "%")
+                .replace("@COLORS@", colors ? "true" : "false")
+                .replace("@NOMARK@", colors ? "" : "function mark(e){}")
                 .replace("@CSS@", css);
     }
 
     static final String DARK_JS =
             "(function(){\n"
                     + "  if(window.__dkRun){window.__dkRun(document.documentElement);return;}\n"
+                    + "  @NAVCORE@\n"
+                    + "  @NOMARK@\n"
+                    + "  if(CS){try{csScan(document.documentElement);}catch(x){}}\n"
                     + "  try{var st=document.getElementById('__dkcss');if(!st){st=document.createElement('style');st.id='__dkcss';(document.head||document.documentElement).appendChild(st);}st.textContent='@CSS@';}catch(x){}\n"
-                    + "  var LIGHT=@LIGHT@;\n"
+                    + "  var COLORS=@COLORS@;var LIGHT=@LIGHT@;var MARKFONT='@MARKFONT@';var MARKZOOM='@MARKZOOM@';\n"
+                    + "  var TITLEFONT='@TITLEFONT@';var TITLEZOOM='@TITLEZOOM@';\n"
                     + "  var SKIP={SCRIPT:1,STYLE:1,IMG:1,SVG:1,LINK:1,META:1,HEAD:1,TITLE:1,BR:1,HR:1,CANVAS:1,VIDEO:1,AUDIO:1,IFRAME:1,OBJECT:1,EMBED:1,NOSCRIPT:1};\n"
                     + "  function parse(c){var m=/rgba?\\(([^)]+)\\)/.exec(c);if(!m)return null;var a=m[1].split(',');return{r:+a[0],g:+a[1],b:+a[2],a:a.length>3?+a[3]:1};}\n"
                     + "  function lum(c){return(0.299*c.r+0.587*c.g+0.114*c.b)/255;}\n"
@@ -104,17 +148,29 @@ final class Assets {
                     + "    if(LIGHT)return'@BG@';\n"
                     + "    return hsl(x[0],x[1]*0.35,0.07+(1-x[2])*0.45);\n"
                     + "  }\n"
-                    + "  @NAVCORE@\n"
                     + "  function fix(e){\n"
                     + "    if(e.nodeType!==1||SKIP[e.tagName.toUpperCase()])return;\n"
                     + "    var tn=e.tagName.toUpperCase();\n"
-                    + "    if((tn==='A'||tn==='BUTTON'||tn==='INPUT'||tn==='SPAN'||tn==='DIV')&&isBtn(e)){mark(e);return;}\n"
+                    + "    if(COLORS&&(tn==='A'||tn==='BUTTON'||tn==='INPUT'||tn==='SPAN'||tn==='DIV')&&isBtn(e)){mark(e);return;}\n"
                     + "    var cs=getComputedStyle(e),c=parse(cs.color),b=parse(cs.backgroundColor),v;\n"
-                    + "    if(c&&(v=fgMap(c)))e.style.setProperty('color',v,'important');\n"
-                    + "    if(e===document.body||e===document.documentElement){e.style.setProperty('background-color','@BG@','important');e.style.setProperty('background-image','none','important');}\n"
+                    + "    if(CS&&(e.hasAttribute('data-dkcs')||e.getAttribute('data-dkcs')==='1'||CSF.test(cs.fontFamily))){e.setAttribute('data-dkcs','1');}\n"
+                    + "    if(COLORS&&c&&(v=fgMap(c)))e.style.setProperty('color',v,'important');\n"
+                    + "    if(!e.hasAttribute('data-dkcs')&&c&&(TITLEFONT||TITLEZOOM)){\n"
+                    + "      var h3=toHsl(c.r,c.g,c.b);\n"
+                    + "      if((lum(c)<0.5&&h3[1]>=0.6&&(h3[0]<=15||h3[0]>=345))||(c.r===@TITR@&&c.g===@TITG@&&c.b===@TITB@)){\n"
+                    + "        if(TITLEFONT)e.style.setProperty('font-family',TITLEFONT,'important');\n"
+                    + "        if(TITLEZOOM)e.style.setProperty('zoom',TITLEZOOM,'important');\n"
+                    + "      }\n"
+                    + "    }\n"
+                    + "    if(!e.hasAttribute('data-dkcs')&&(TITLEFONT||TITLEZOOM)&&(tn==='H1'||tn==='H2'||tn==='H3'||tn==='H4'||tn==='H5'||tn==='H6'||e.classList.contains('title')||e.classList.contains('naslov')||e.classList.contains('color-red'))){\n"
+                    + "      if(TITLEFONT)e.style.setProperty('font-family',TITLEFONT,'important');\n"
+                    + "      if(TITLEZOOM)e.style.setProperty('zoom',TITLEZOOM,'important');\n"
+                    + "    }\n"
+                    + "    if(c&&(MARKFONT||MARKZOOM)){var h2=toHsl(c.r,c.g,c.b);if((lum(c)<0.5&&h2[1]>=0.2&&h2[0]>=75&&h2[0]<=165)||(c.r===@MKR@&&c.g===@MKG@&&c.b===@MKB@)){if(MARKFONT)e.style.setProperty('font-family',MARKFONT,'important');if(MARKZOOM)e.style.setProperty('zoom',MARKZOOM,'important');}}\n"
+                    + "    if(!COLORS){}else if(e===document.body||e===document.documentElement){e.style.setProperty('background-color','@BG@','important');e.style.setProperty('background-image','none','important');}\n"
                     + "    else if(b&&(v=bgMap(b)))e.style.setProperty('background-color',v,'important');\n"
                     + "    var bi=cs.backgroundImage;\n"
-                    + "    if(bi&&bi!=='none'&&/pozadina|fine-grain|paper|diagonal-maze/i.test(bi))e.style.setProperty('background-image','none','important');\n"
+                    + "    if(COLORS&&bi&&bi!=='none'&&/pozadina|fine-grain|paper|diagonal-maze/i.test(bi))e.style.setProperty('background-image','none','important');\n"
                     + "  }\n"
                     + "  function run(root){\n"
                     + "    try{\n"

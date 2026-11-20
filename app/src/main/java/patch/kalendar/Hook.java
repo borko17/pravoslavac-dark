@@ -42,6 +42,49 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
     /** Metoda fragmenta kalendara (mjesec, godina) koja prikazuje mjesec u kalendaru (obfuskovano ime). */
     static String CAL_JUMP = "Y";
 
+    /** Fragment kalendara (poslednji izradjen): cilj skoka na izabrani mjesec. */
+    static volatile java.lang.ref.WeakReference<Object> calFragment;
+
+    /**
+     * Ikonica kalendara otvara izbor datuma, ali aplikacija poslije izbora ne prikaze izabrani mjesec (greska u
+     * originalnoj aplikaciji). Poslije potvrde izbora u DatePickerDialog-u kalendar se rucno prebaci na izabrani
+     * mjesec i godinu. Dijalozi koji se prikazuju se upisuju u log (za dijagnostiku ako izbor nije DatePickerDialog).
+     */
+    private static void hookCalendarPicker(ClassLoader cl) {
+        hook("android.app.DatePickerDialog", cl, "onClick", "android.content.DialogInterface", int.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) {
+                        try {
+                            if (((Integer) param.args[1]).intValue() != android.content.DialogInterface.BUTTON_POSITIVE) return;
+                            android.app.DatePickerDialog d = (android.app.DatePickerDialog) param.thisObject;
+                            android.widget.DatePicker dp = d.getDatePicker();
+                            jumpToMonth(dp.getMonth() + 1, dp.getYear());
+                        } catch (Throwable t) {
+                            XposedBridge.log(t);
+                        }
+                    }
+                });
+        hook("android.app.Dialog", cl, "show", new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) {
+                XposedBridge.log("PravoslavacDark: dialog show " + param.thisObject.getClass().getName());
+            }
+        });
+    }
+
+    /** Prikazuje dati mjesec u fragmentu kalendara (isto kao pri pokretanju aplikacije). */
+    static void jumpToMonth(int month, int year) {
+        try {
+            java.lang.ref.WeakReference<Object> r = calFragment;
+            Object f = r == null ? null : r.get();
+            if (f == null) return;
+            XposedHelpers.callMethod(f, CAL_JUMP, new Object[] { Integer.valueOf(month), Integer.valueOf(year) });
+        } catch (Throwable t) {
+            XposedBridge.log(t);
+        }
+    }
+
     /** Bira podrzanu aplikaciju po imenu paketa; vraca false ako paket nije podrzan. */
     static boolean select(String pkg) {
         if (PKG_PRAVOSLAVAC.equals(pkg)) {
@@ -79,6 +122,10 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
+        if ("android".equals(lpparam.packageName)) {   // System Framework: modul vidljiv Pravoslavcu (FontProvider)
+            SystemHook.install(lpparam.classLoader);
+            return;
+        }
         if (!select(lpparam.packageName)) return;
         final ClassLoader cl = lpparam.classLoader;
         Prefs.init(lpparam.appInfo != null ? lpparam.appInfo.dataDir : null);
@@ -119,6 +166,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                 new XC_MethodHook() {
                     @Override
                     protected void afterHookedMethod(MethodHookParam param) {
+                        calFragment = new java.lang.ref.WeakReference<Object>(param.thisObject);
                         if (start) {
                             start = false;
                             Calendar c = Calendar.getInstance();
@@ -128,6 +176,8 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                         }
                     }
                 });
+
+        hookCalendarPicker(cl);
 
         hook("android.os.Handler", cl, "postDelayed", "java.lang.Runnable", long.class, new XC_MethodHook() {
             @Override
@@ -172,7 +222,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                 protected void beforeHookedMethod(MethodHookParam param) {
                     try {
                         WebView wv = (WebView) param.thisObject;
-                        if (Prefs.dark() || Prefs.left()) wv.getSettings().setJavaScriptEnabled(true);
+                        wv.getSettings().setJavaScriptEnabled(true);   // i za fontove (tema "Православац")
                         if (Prefs.dark()) wv.setBackgroundColor(Dark.WEB_BG);
                         Object a0 = param.args.length > 0 ? param.args[0] : null;
                         boolean js = a0 instanceof String && ((String) a0).startsWith("javascript:");
@@ -212,7 +262,14 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         hook("android.view.View", cl, "setBackgroundColor", int.class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) {
-                if (!Prefs.dark()) return;
+                if (!Prefs.dark()) {
+                    try {   // tema "Православац": boja ostaje, samo font teksta u nedeljnoj traci
+                        if (Dark.isSunBg(((Integer) param.args[0]).intValue())) Dark.fontSunday((View) param.thisObject);
+                    } catch (Throwable t) {
+                        XposedBridge.log(t);
+                    }
+                    return;
+                }
                 try {
                     int c = ((Integer) param.args[0]).intValue();
                     if (c == LIGHT_ROW) {
@@ -232,7 +289,21 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         hook("android.widget.AbsListView", cl, "obtainView", int.class, boolean[].class, new XC_MethodHook() {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
-                if (!Prefs.dark()) return;
+                if (!Prefs.dark()) {
+                    try {   // tema "Православац": samo fontovi
+                        Object r = param.getResult();
+                        Object lv = param.thisObject;
+                        if (!(r instanceof View)) return;
+                        if (lv instanceof android.widget.ExpandableListView) {
+                            Dark.fontMenu((View) r, true);
+                        } else if (lv instanceof View && ((View) lv).getTag(Dark.TAG_BOOKLIST) != null) {
+                            Dark.fontBook((View) r);
+                        }
+                    } catch (Throwable t) {
+                        XposedBridge.log(t);
+                    }
+                    return;
+                }
                 try {
                     Object r = param.getResult();
                     if (!(r instanceof View)) return;
@@ -268,7 +339,20 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         hook("android.widget.TextView", cl, "setTextColor", int.class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) {
-                if (!Prefs.dark()) return;
+                if (!Prefs.dark()) {
+                    try {   // tema "Православац": boja se ne mijenja, samo font naslova / praznika
+                        int c0 = ((Integer) param.args[0]).intValue();
+                        String k0 = Dark.fgKey(c0);
+                        if ("c_title".equals(k0) || "c_holiday".equals(k0)) {
+                            Fonts.apply((android.widget.TextView) param.thisObject, k0);
+                        } else if (c0 == DARK_RED) {
+                            Fonts.apply((android.widget.TextView) param.thisObject, "c_holiday");
+                        }
+                    } catch (Throwable t) {
+                        XposedBridge.log(t);
+                    }
+                    return;
+                }
                 try {
                     if (Dark.applying) return;
                     // nedeljna traka, mjesec i godina, naslov kalendara: boja teksta iz teme, kako god je app postavi
@@ -278,9 +362,25 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                         return;
                     }
                     int c = ((Integer) param.args[0]).intValue();
-                    if (c == DARK_RED) {
+                    Object tr = ((View) param.thisObject).getTag(Dark.TAG_TROLE);
+                    if (tr instanceof String) {   // datum, dan, mrs / postovi: boja prema ulozi teksta
+                        String k = (String) tr;
+                        boolean fixed = "c_meat".equals(k) || "c_fast".equals(k);
+                        boolean red = c == DARK_RED || "c_holiday".equals(Dark.fgKey(c));
+                        if (fixed || !red) {
+                            param.args[0] = Integer.valueOf(Dark.colorOfRole(k));
+                            return;
+                        }
+                    }
+                    String fk = Dark.fgKey(c);
+                    if ("c_title".equals(fk) || "c_holiday".equals(fk)) {
+                        ((View) param.thisObject).setTag(Dark.TAG_ORIG, Integer.valueOf(c));
+                        param.args[0] = Integer.valueOf("c_title".equals(fk) ? Dark.TITLE : Dark.HOLIDAY);
+                        Fonts.apply((android.widget.TextView) param.thisObject, fk);
+                    } else if (c == DARK_RED) {
                         ((View) param.thisObject).setTag(Dark.TAG_ORIG, Integer.valueOf(c));
                         param.args[0] = Integer.valueOf(Dark.HOLIDAY);
+                        Fonts.apply((android.widget.TextView) param.thisObject, "c_holiday");
                     }
                 } catch (Throwable t) {
                     XposedBridge.log(t);
@@ -289,6 +389,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         });
 
         hookText(cl);
+        hookTypefaces(cl);
         hookCss(cl);
         hookSettingsMenu(cl);
 
@@ -315,7 +416,6 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
      * prije nego sto je obojena (bljesak originalnih boja pri brzom prelistavanju).
      */
     static void hideWebView(final WebView wv) {
-        if (!Prefs.dark() && !Prefs.left()) return;
         try {
             Object old = wv.getTag(TAG_HIDE);
             if (old instanceof Runnable) wv.removeCallbacks((Runnable) old);
@@ -418,7 +518,16 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
             protected void afterHookedMethod(MethodHookParam param) {
                 int[] d = DEPTH.get();
                 d[0]--;
-                if (d[0] == 0 && Prefs.dark()) {
+                if (d[0] == 0 && !Prefs.dark()) {
+                    // tema "Православац": samo fontovi (boje aplikacije ostaju)
+                    Object r = param.getResult();
+                    if (r instanceof View) {
+                        Dark.walkFonts((View) r);
+                        if (param.args.length > 1 && param.args[1] instanceof android.widget.ExpandableListView) {
+                            Dark.fontMenu((View) r, false);
+                        }
+                    }
+                } else if (d[0] == 0 && Prefs.dark()) {
                     Object r = param.getResult();
                     if (r instanceof View) {
                         Dark.walk((View) r);
@@ -435,12 +544,99 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                 boolean.class, h);
     }
 
+    /** Ako je TextView pod fontom iz teme, aplikacijin setTypeface se zamjenjuje tim fontom (uz zadrzan stil). */
+    private static final XC_MethodHook TYPEFACE = new XC_MethodHook() {
+        @Override
+        protected void beforeHookedMethod(MethodHookParam param) {
+            try {
+                if (Fonts.busy || !(param.thisObject instanceof android.widget.TextView)) return;
+                Fonts.onSetTypeface((android.widget.TextView) param.thisObject, param.args);
+            } catch (Throwable t) {
+                XposedBridge.log(t);
+            }
+        }
+    };
+
+    /** Velicina teksta iz teme (procenat) mnozi se i kad aplikacija sama mijenja velicinu. */
+    private static final XC_MethodHook TEXTSIZE = new XC_MethodHook() {
+        @Override
+        protected void beforeHookedMethod(MethodHookParam param) {
+            try {
+                if (Fonts.busy || !(param.thisObject instanceof android.widget.TextView)) return;
+                Fonts.onSetTextSize((android.widget.TextView) param.thisObject, param.args);
+            } catch (Throwable t) {
+                XposedBridge.log(t);
+            }
+        }
+    };
+
+    /** Beleži fontove koje aplikacija sama učitava (crkvenoslovenski): oni se mogu izuzeti iz primjene preuzetih fontova. */
+    private static void hookTypefaces(ClassLoader cl) {
+        XC_MethodHook note = new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) {
+                try {
+                    Object r = param.getResult();
+                    if (r instanceof android.graphics.Typeface) {
+                        String path = null;
+                        if (param.args != null) {
+                            for (Object arg : param.args) {
+                                if (arg instanceof String) {
+                                    path = (String) arg;
+                                    break;
+                                } else if (arg instanceof java.io.File) {
+                                    path = ((java.io.File) arg).getName();
+                                    break;
+                                }
+                            }
+                        }
+                        if (Fonts.isCsFont(path)) {
+                            Fonts.noteAppFace((android.graphics.Typeface) r);
+                        }
+                    }
+                } catch (Throwable t) {
+                    XposedBridge.log(t);
+                }
+            }
+        };
+        hook("android.graphics.Typeface", cl, "createFromAsset", android.content.res.AssetManager.class, String.class, note);
+        hook("android.graphics.Typeface", cl, "createFromFile", String.class, note);
+        hook("android.graphics.Typeface", cl, "createFromFile", java.io.File.class, note);
+        hook("android.graphics.Typeface", cl, "create", String.class, int.class, note);
+        hook("android.graphics.Typeface", cl, "create", android.graphics.Typeface.class, int.class, new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) {
+                try {
+                    Object r = param.getResult();
+                    if (param.args != null && param.args.length > 0 && param.args[0] instanceof android.graphics.Typeface && r instanceof android.graphics.Typeface) {
+                        Fonts.noteDerived((android.graphics.Typeface) param.args[0], (android.graphics.Typeface) r);
+                    }
+                } catch (Throwable t) {
+                    XposedBridge.log(t);
+                }
+            }
+        });
+    }
+
     private static void hookText(ClassLoader cl) {
+        hook("android.widget.TextView", cl, "setTextSize", int.class, float.class, TEXTSIZE);
+        hook("android.widget.TextView", cl, "setTypeface", "android.graphics.Typeface", TYPEFACE);
+        hook("android.widget.TextView", cl, "setTypeface", "android.graphics.Typeface", int.class, TYPEFACE);
         hook("android.widget.TextView", cl, "setText", CharSequence.class, "android.widget.TextView$BufferType",
                 new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) {
-                        if (!Prefs.dark()) return;
+                        if (!Prefs.dark()) {
+                            try {   // tema "Православац": samo font, tekst ostaje isti
+                                Object o0 = param.args[0];
+                                if (o0 instanceof CharSequence) {
+                                    Dark.fontText((android.widget.TextView) param.thisObject, (CharSequence) o0);
+                                }
+                            } catch (Throwable t) {
+                                XposedBridge.log(t);
+                            }
+                            return;
+                        }
                         try {
                             Object o = param.args[0];
                             if (o instanceof CharSequence) {
@@ -458,6 +654,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         @Override
         protected void beforeHookedMethod(MethodHookParam param) {
             hideWebView((WebView) param.args[0]);
+            Fonts.applyWebZoom((WebView) param.args[0]);
         }
     };
 
@@ -474,7 +671,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
                     }
                 };
                 if (Prefs.left()) wv.evaluateJavascript(Assets.JUSTIFY_JS, null);
-                wv.evaluateJavascript(Prefs.dark() ? Assets.darkJs() : "1", reveal);
+                wv.evaluateJavascript(Assets.darkJs(), reveal);   // uz temu "Православац" samo fontovi
             } catch (Throwable t) {
                 XposedBridge.log(t);
                 showWebView(wv);
@@ -489,12 +686,23 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
     private static final XC_MethodHook INTERCEPT = new XC_MethodHook() {
         @Override
         protected void beforeHookedMethod(MethodHookParam param) {
-            if (!Prefs.dark() && !Prefs.left()) return;
             try {
                 if (!(param.args[0] instanceof WebView) || !(param.args[1] instanceof WebResourceRequest)) return;
                 String path = ((WebResourceRequest) param.args[1]).getUrl().getPath();
                 String marker = "/android_asset/";
                 if (path == null || !path.contains(marker)) return;
+                if (path.contains(marker + FontCatalog.WEB_DIR + "/")) {
+                    // fontovi iz teme (preuzeti Google fontovi) za stranice u WebView-u
+                    java.io.File ff = Fonts.webFile(path.substring(path.lastIndexOf('/') + 1));
+                    if (ff != null) {
+                        WebResourceResponse fr = new WebResourceResponse("font/ttf", null, new java.io.FileInputStream(ff));
+                        java.util.Map<String, String> hdr = new java.util.HashMap<String, String>();
+                        hdr.put("Access-Control-Allow-Origin", "*");
+                        fr.setResponseHeaders(hdr);
+                        param.setResult(fr);
+                    }
+                    return;
+                }
                 String lower = path.toLowerCase(java.util.Locale.ROOT);
                 boolean css = lower.endsWith(".css") && path.contains("/android_asset/Content/Style/");
                 boolean html = lower.endsWith(".html") || lower.endsWith(".htm");
@@ -537,7 +745,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         }
         out.write(data);
         if (Prefs.left()) out.write(("\n" + Assets.LEFT_CSS).getBytes("UTF-8"));
-        if (Prefs.dark()) out.write(("\n" + Assets.darkCss()).getBytes("UTF-8"));
+        out.write(("\n" + (Prefs.dark() ? Assets.darkCss() : Fonts.webCss())).getBytes("UTF-8"));
         return out.toByteArray();
     }
 
@@ -556,7 +764,7 @@ public class Hook implements IXposedHookLoadPackage, IXposedHookInitPackageResou
         if (Prefs.left()) s = leftify(s);
         StringBuilder css = new StringBuilder();
         if (Prefs.left()) css.append(Assets.LEFT_CSS);
-        if (Prefs.dark()) css.append(Assets.darkCss());
+        css.append(Prefs.dark() ? Assets.darkCss() : Fonts.webCss());
         String tag = "<style id=\"__dkcss0\">" + css + "</style>";
         if (Prefs.dark()) tag += "<script>" + Assets.navJs() + "</script>";
         java.util.regex.Matcher he = java.util.regex.Pattern.compile("(?i)</head>").matcher(s);
