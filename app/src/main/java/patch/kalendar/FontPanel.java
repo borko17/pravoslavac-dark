@@ -268,7 +268,7 @@ final class FontPanel {
         LinearLayout acts = new LinearLayout(act);
         acts.setOrientation(LinearLayout.HORIZONTAL);
         acts.setPadding(0, dp(12), 0, dp(10));
-        TextView refresh = pill(act, pal, "Освјежи списак", TONAL, Icons.REGENERATE, false);
+        TextView refresh = pill(act, pal, "Освежи списак", TONAL, Icons.REGENERATE, false);
         refresh.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -814,7 +814,7 @@ final class FontPanel {
             loadState();
             return;
         }
-        count.setText("Освјежавам списак са Гугла…");
+        count.setText("Освежавам списак са Гугла…");
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -846,7 +846,7 @@ final class FontPanel {
                             bad.addAll(fs.bad);
                             previewFailed.clear();
                             build();
-                            toast("Списак освјежен: " + totalCount + " " + fontWord(totalCount) + " са ћирилицом");
+                            toast("Списак освежен: " + totalCount + " " + fontWord(totalCount) + " са ћирилицом");
                         } else {
                             updateCount();
                             toast("Грешка: " + fe);

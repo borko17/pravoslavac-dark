@@ -55,7 +55,7 @@ koriste podešavanje linkova. Veličina „Текст житија, књига �
 
 - Android 5.0+ (`minSdk 21`)
 - Instaliran **Pravoslavac** (`com.pravoslavac`) i/ili **Житије светих** (`com.zitijesvetih`, testirano na 1.3.8)
-- **LSPosed** (ili drugi okvir kompatibilan sa Xposed API-jem 93)
+- **LSPosed** (ili drugi okvir kompatibilan sa Xposed API-jem 102)
 
 ## Instalacija
 
